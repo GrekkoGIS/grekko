@@ -1,7 +1,6 @@
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 
-use serde_json::*;
 use vrp_core::models::{Problem as CoreProblem, Solution as CoreSolution};
 use vrp_core::solver::Builder;
 use vrp_pragmatic::checker::CheckerContext;
@@ -12,7 +11,6 @@ fn main() {
     println!("Hello, world!");
     test_pragmatic();
 }
-
 
 fn test_pragmatic() {
     let problem_text = r#"
@@ -173,7 +171,6 @@ fn test_pragmatic() {
 
     let problem = String::from(problem_text).read_pragmatic();
 
-    // let problem: CoreProblem = serde_json::from_str(problem_text).expect("Issue deserialising problem text");
     let problem = Arc::new(problem.expect("Problem could not be marshalled to an arc"));
     let (solution, _) = Builder::default()
         .with_max_generations(Some(10))
@@ -187,9 +184,14 @@ fn test_pragmatic() {
     let problem = get_pragmatic_problem(problem_text);
 
     // TODO use matrices
-    if let Err(err) = CheckerContext::new(problem, None, solution).check() {
+
+    let context = CheckerContext::new(problem, None, solution);
+
+    if let Err(err) = context.check() {
         panic!("unfeasible solution in '{}': '{}'", "name", err);
     }
+
+    println!("{:?}", context.solution)
 }
 
 fn get_pragmatic_problem(problem_text: &str) -> Problem {
@@ -200,8 +202,9 @@ fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Sol
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
 
-    solution.write_pragmatic_json(&problem, writer).expect("cannot write pragmatic solution");
+    solution
+        .write_pragmatic_json(&problem, writer)
+        .expect("cannot write pragmatic solution");
 
     deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
 }
-
