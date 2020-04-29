@@ -1,0 +1,1 @@
+Build: ![Rust](https://github.com/AwesomeIbex/grekko/workflows/Rust/badge.svg?branch=master)

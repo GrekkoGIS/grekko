@@ -9,11 +9,36 @@ use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, S
 
 fn main() {
     println!("Hello, world!");
-    test_pragmatic();
 }
 
-fn test_pragmatic() {
-    let problem_text = r#"
+fn get_pragmatic_problem(problem_text: &str) -> Problem {
+    deserialize_problem(BufReader::new(problem_text.as_bytes())).unwrap()
+}
+
+fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {
+    let mut buffer = String::new();
+    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+
+    solution
+        .write_pragmatic_json(&problem, writer)
+        .expect("cannot write pragmatic solution");
+
+    deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{get_pragmatic_problem, get_pragmatic_solution};
+    use std::io::empty;
+    use std::ptr::null;
+    use std::sync::Arc;
+    use vrp_core::solver::Builder;
+    use vrp_pragmatic::checker::CheckerContext;
+    use vrp_pragmatic::format::problem::PragmaticProblem;
+
+    #[test]
+    fn test_pragmatic() {
+        let problem_text = r#"
 {
   "plan": {
     "jobs": [
@@ -169,42 +194,28 @@ fn test_pragmatic() {
 }
     "#;
 
-    let problem = String::from(problem_text).read_pragmatic();
+        let problem = String::from(problem_text).read_pragmatic();
 
-    let problem = Arc::new(problem.expect("Problem could not be marshalled to an arc"));
-    let (solution, _) = Builder::default()
-        .with_max_generations(Some(10))
-        .with_problem(problem.clone())
-        .build()
-        .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
-        .solve()
-        .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
+        let problem = Arc::new(problem.expect("Problem could not be marshalled to an arc"));
+        let (solution, _) = Builder::default()
+            .with_max_generations(Some(10))
+            .with_problem(problem.clone())
+            .build()
+            .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
+            .solve()
+            .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
 
-    let solution = get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
-    let problem = get_pragmatic_problem(problem_text);
+        let solution = get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
+        let problem = get_pragmatic_problem(problem_text);
 
-    // TODO use matrices
+        // TODO use matrices
 
-    let context = CheckerContext::new(problem, None, solution);
+        let context = CheckerContext::new(problem, None, solution);
 
-    if let Err(err) = context.check() {
-        panic!("unfeasible solution in '{}': '{}'", "name", err);
+        if let Err(err) = context.check() {
+            panic!("unfeasible solution in '{}': '{}'", "name", err);
+        }
+
+        println!("{:?}", context.solution);
     }
-
-    println!("{:?}", context.solution)
-}
-
-fn get_pragmatic_problem(problem_text: &str) -> Problem {
-    deserialize_problem(BufReader::new(problem_text.as_bytes())).unwrap()
-}
-
-fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-
-    solution
-        .write_pragmatic_json(&problem, writer)
-        .expect("cannot write pragmatic solution");
-
-    deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
 }
