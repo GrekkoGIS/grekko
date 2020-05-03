@@ -1,7 +1,7 @@
 use std::io::{BufReader, BufWriter};
 
 use vrp_core::models::{Problem as CoreProblem, Solution as CoreSolution};
-use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem, Problem};
+use vrp_pragmatic::format::problem::{deserialize_problem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 
 fn get_pragmatic_problem(problem_text: &str) -> Problem {

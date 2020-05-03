@@ -1,7 +1,4 @@
-use std::sync::Arc;
-
 use serde::{Deserialize, Serialize};
-use vrp_core::models::Problem;
 use vrp_pragmatic::format::Location;
 use vrp_pragmatic::format::problem::{VehiclePlace, VehicleShift, Profile};
 
@@ -104,12 +101,12 @@ impl DetailedRequest {
                         .iter()
                         .map(|shift| VehicleShift {
                             start: VehiclePlace { time: shift.start.time.to_string(), location: Location { lat: 0.0, lng: 0.0 } }, //TODO convert these
-                            end: None, //optional
-                            breaks: None,
+                            end: Option::from(VehiclePlace { time: shift.end.time.to_string(), location: Location { lat: 0.0, lng: 0.0 } }), //optional
+                            breaks: None, //TODO expose breaks
                             reloads: None,
                         }).collect(),
                     capacity: vec![vehicle.capacity],
-                    skills: None,
+                    skills: None, //TODO expose some skills
                     limits: None, //TODO more on all of these
                 }
             }).collect();
