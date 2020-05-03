@@ -29,8 +29,7 @@ mod tests {
     use vrp_core::solver::Builder;
     use vrp_pragmatic::checker::CheckerContext;
     use vrp_pragmatic::format::problem::PragmaticProblem;
-
-    use crate::{get_pragmatic_problem, get_pragmatic_solution};
+    use crate::vrp::{get_pragmatic_solution, get_pragmatic_problem};
 
     #[test]
     fn test_pragmatic() {
