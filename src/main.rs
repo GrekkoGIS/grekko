@@ -2,7 +2,7 @@
 
 use std::borrow::BorrowMut;
 use std::fs::File;
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 use csv::Reader;
 use warp::Filter;
@@ -16,20 +16,24 @@ mod geocoding;
 #[tokio::main]
 async fn main() {
     let postcodes: Arc<Mutex<Reader<File>>> = Arc::new(build_geocoding_csv());
-    let thread_postcodes = postcodes.clone();
+    let forward_geocoding_postcodes = postcodes.clone();
+    let reverse_geocoding_postcodes = postcodes.clone();
 
-    let geocoding = warp::get()
-        .and(warp::path("geocoding"))
-        .and(warp::query()
-            .map(move |query: geocoding::Geocoding| {
-                match query.query {
-                    POSTCODE(postcode) => geocoding::search_coordinates(thread_postcodes.lock().unwrap().borrow_mut(), postcode.as_str()),
-                    COORDINATES(lat_lon) => geocoding::search_postcode(thread_postcodes.lock().unwrap().borrow_mut(), lat_lon),
-                }
-            })
-        )
-        // .map(|res| warp::reply::json(res))
-        ;
+    let forward_geocoding = warp::path!("geocoding" / "forward" / String)
+        .map(move |postcode: String| {
+            geocoding::search_coordinates(forward_geocoding_postcodes
+                                              .lock()
+                                              .expect("Mutex was poisoned")
+                                              .borrow_mut(), postcode.as_str())
+        });
+
+    let reverse_geocoding = warp::path!("geocoding" / "reverse" / f64 / f64)
+        .map(move |lat, lon| {
+            geocoding::search_postcode(reverse_geocoding_postcodes
+                                           .lock()
+                                           .expect("Mutex was poisoned")
+                                           .borrow_mut(), vec![lat, lon])
+        });
 
     let trip = warp::post()
         .and(warp::path("detailed"))
@@ -42,7 +46,8 @@ async fn main() {
         });
 
     let routes = trip
-        .or(geocoding);
+        .or(forward_geocoding)
+        .or(reverse_geocoding);
 
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3030))
