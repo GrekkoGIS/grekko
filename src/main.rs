@@ -13,29 +13,29 @@ mod geocoding;
 
 #[tokio::main]
 async fn main() {
-    let postcodes: Mutex<Reader<File>> = Mutex::new(csv::Reader::from_path("POSTCODES.csv")
-        .expect("Issue reading POSTCODES.gz"));
+    let postcodes: Mutex<Reader<File>> = build_geocoding_csv();
 
     println!("{:?}", geocoding::search(postcodes.lock().unwrap().borrow_mut(), "BS1 1AA"));
-
-    let basic_endpoint = warp::path("test")
-        .map(|| "Hello, World!")
-        // .with(warp::compression::gzip())
-        ;
 
     let trip = warp::post()
         .and(warp::path("detailed"))
         // .and(warp::path::param::<u32>())
+        // .with(warp::compression::gzip())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json())
         .map(|request: request::DetailedRequest| {
             warp::reply::json(&request)
         });
 
-    let routes = basic_endpoint
-        .or(basic_endpoint);
+    let routes = trip
+        .or(trip);
 
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3030))
         .await;
+}
+
+fn build_geocoding_csv() -> Mutex<Reader<File>> {
+    Mutex::new(csv::Reader::from_path("postcodes.csv")
+        .expect("Issue reading postcodes.csv"))
 }
