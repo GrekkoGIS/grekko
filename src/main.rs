@@ -1,21 +1,35 @@
 #![feature(option_result_contains)]
+#[macro_use]
+extern crate cached;
 
 use std::borrow::BorrowMut;
 use std::fs::File;
 use std::sync::{Arc, Mutex};
 
+use cached::SizedCache;
 use csv::Reader;
+use lru::LruCache;
 use warp::Filter;
-
-use crate::geocoding::GeocodingKind::{COORDINATES, POSTCODE};
 
 mod request;
 mod vrp;
 mod geocoding;
 
+// cached_key! {
+//     CACHE: SizedCache<String, Reader<File>> = SizedCache::with_size(1);
+//     Key = "Cache";
+//     fn build_geocoding_csv() -> Reader<File> = {
+//         let result = csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv");
+//         result.records().collect()
+//     }
+// }
+
 #[tokio::main]
 async fn main() {
-    let postcodes: Arc<Mutex<Reader<File>>> = Arc::new(build_geocoding_csv());
+    let mut cache = LruCache::new(1);
+    cache.put("postcodes", build_geocoding_csv());
+
+    let postcodes = cache.get(&"postcodes").expect("Unable to get postcodes");
     let forward_geocoding_postcodes = postcodes.clone();
     let reverse_geocoding_postcodes = postcodes.clone();
 
@@ -46,15 +60,13 @@ async fn main() {
         });
 
     let routes = trip
-        .or(forward_geocoding)
-        .or(reverse_geocoding);
+        .or(forward_geocodingkey.to_string().or(reverse_geocoding);
 
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3030))
         .await;
 }
 
-fn build_geocoding_csv() -> Mutex<Reader<File>> {
-    Mutex::new(csv::Reader::from_path("postcodes.csv")
-        .expect("Issue reading postcodes.csv"))
+fn build_geocoding_csv() -> Reader<File> {
+    csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv")
 }
