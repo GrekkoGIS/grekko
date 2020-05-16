@@ -114,7 +114,8 @@ impl DetailedRequest {
         //TODO explain single profile
         let profile = Profile {
             name: "car".to_string(),
-            profile_type: "car".to_string()
+            profile_type: "car".to_string(),
+            speed: None
         }; //TODO enum this
 
         vrp_pragmatic::format::problem::Problem {

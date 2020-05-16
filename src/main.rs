@@ -10,6 +10,8 @@ use cached::SizedCache;
 use csv::Reader;
 use lru::LruCache;
 use warp::Filter;
+use tokio::sync::mpsc::channel;
+use std::convert::Infallible;
 
 mod request;
 mod vrp;
@@ -26,28 +28,12 @@ mod geocoding;
 
 #[tokio::main]
 async fn main() {
-    let mut cache = LruCache::new(1);
-    cache.put("postcodes", build_geocoding_csv());
-
-    let postcodes = cache.get(&"postcodes").expect("Unable to get postcodes");
-    let forward_geocoding_postcodes = postcodes.clone();
-    let reverse_geocoding_postcodes = postcodes.clone();
 
     let forward_geocoding = warp::path!("geocoding" / "forward" / String)
-        .map(move |postcode: String| {
-            geocoding::search_coordinates(forward_geocoding_postcodes
-                                              .lock()
-                                              .expect("Mutex was poisoned")
-                                              .borrow_mut(), postcode.as_str())
-        });
+        .and_then(receive_and_search_coordinates);
 
     let reverse_geocoding = warp::path!("geocoding" / "reverse" / f64 / f64)
-        .map(move |lat, lon| {
-            geocoding::search_postcode(reverse_geocoding_postcodes
-                                           .lock()
-                                           .expect("Mutex was poisoned")
-                                           .borrow_mut(), vec![lat, lon])
-        });
+        .and_then(receive_and_search_postcode);
 
     let trip = warp::post()
         .and(warp::path("detailed"))
@@ -60,13 +46,19 @@ async fn main() {
         });
 
     let routes = trip
-        .or(forward_geocodingkey.to_string().or(reverse_geocoding);
+        .or(forward_geocoding).or(reverse_geocoding);
 
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3030))
         .await;
 }
 
-fn build_geocoding_csv() -> Reader<File> {
-    csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv")
+async fn receive_and_search_coordinates(postcode: String) -> Result<impl warp::Reply, Infallible> {
+    let result = geocoding::search_coordinates(postcode.as_ref());
+    Ok(result)
+}
+
+async fn receive_and_search_postcode(lat: f64, lon: f64) -> Result<impl warp::Reply, Infallible> {
+    let result = geocoding::search_postcode(vec![lat, lon]);
+    Ok(result)
 }
