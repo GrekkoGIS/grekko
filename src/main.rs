@@ -2,10 +2,8 @@
 #[macro_use]
 extern crate cached;
 
-use warp::Filter;
-use std::convert::Infallible;
 use grekko::start_server;
-use std::net::{SocketAddrV4, Ipv4Addr, IpAddr, SocketAddr};
+use std::net::{Ipv4Addr, IpAddr, SocketAddr};
 
 pub mod request;
 mod vrp;

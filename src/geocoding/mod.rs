@@ -43,13 +43,13 @@ pub fn search_coordinates(query: &str) -> String {
                 .iter()
                 .any(|field| field == query),
         )
-        .unwrap_or_else(|| panic!("Unable to find {}", query))
+        .unwrap_or_else(|| panic!("Unable to find coordinates for {}", query))
         .expect("Issue unwrapping find");
     format!("{};{}", res.get(lat_index).unwrap().to_owned(), res.get(lon_index).unwrap().to_owned())
 }
 
 pub fn search_postcode(lat_lon: Vec<f64>) -> String {
-    let postcode_index = 1;
+    let postcode_index = 0;
     let res: StringRecord = build_geocoding_csv()
         .records()
         .find(
@@ -58,11 +58,30 @@ pub fn search_postcode(lat_lon: Vec<f64>) -> String {
                 .iter()
                 .any(|field| field == lat_lon.first().unwrap().to_string()),
         )
-        .unwrap_or_else(|| panic!("Unable to find {:?}", lat_lon))
+        .unwrap_or_else(|| panic!("Unable to find a postcode for {:?}", lat_lon))
         .expect("Issue unwrapping find");
-    format!("{}", res.get(postcode_index).unwrap().to_owned())
+    res.get(postcode_index).unwrap().to_owned()
 }
 
 fn build_geocoding_csv() -> Reader<File> {
     csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv")
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::geocoding::{search_postcode, search_coordinates};
+
+    #[test]
+    fn test_search_postcode() {
+        let coordinates = vec![57.099011, -2.252854];
+        let postcode = search_postcode(coordinates);
+        assert_eq!(postcode, "AB1 0AJ")
+    }
+
+    #[test]
+    fn test_search_coordinates() {
+        let coordinates = search_coordinates("AB1 0AJ");
+        assert_eq!(coordinates, "57.099011;-2.252854")
+    }
+
 }
