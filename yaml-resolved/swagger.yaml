@@ -207,6 +207,7 @@ components:
             $ref: '#/components/schemas/Objective'
     Objective:
       type: string
+      example: '["minimise-unassigned","balance-distance"]'
       enum:
       - MinimizeCost
       - MinimizeTours
@@ -269,8 +270,10 @@ components:
       properties:
         name:
           type: string
+          example: car
         type:
           type: string
+          example: car
         speed:
           type: number
     VehicleShift:
