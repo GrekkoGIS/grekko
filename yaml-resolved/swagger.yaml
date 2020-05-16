@@ -177,7 +177,7 @@ components:
         tours:
           type: array
           items:
-            $ref: '#/components/schemas/Tour'
+            $ref: '#/components/schemas/SimplifiedTour'
         unassigned:
           type: array
           items:
@@ -232,6 +232,18 @@ components:
             $ref: '#/components/schemas/Stop'
         statistic:
           $ref: '#/components/schemas/Statistic'
+    SimplifiedTour:
+      required:
+      - vehicle_id
+      type: object
+      properties:
+        vehicle_id:
+          type: string
+          example: OXSAKS58473
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimplifiedStop'
     Stop:
       type: object
       properties:
@@ -254,6 +266,17 @@ components:
           items:
             type: number
             example: 5
+    SimplifiedStop:
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        distance:
+          type: number
+          description: The distance travelled since the start job
+          example: 5
     Location:
       type: object
       properties:
