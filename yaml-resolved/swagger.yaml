@@ -182,6 +182,7 @@ components:
   schemas:
     Problem:
       required:
+      - fleet
       - plan
       type: object
       properties:
@@ -189,6 +190,33 @@ components:
           $ref: '#/components/schemas/Plan'
         fleet:
           $ref: '#/components/schemas/Fleet'
+        objectives:
+          $ref: '#/components/schemas/Objectives'
+    Objectives:
+      required:
+      - primary
+      type: object
+      properties:
+        primary:
+          type: array
+          items:
+            $ref: '#/components/schemas/Objective'
+        secondary:
+          type: array
+          items:
+            $ref: '#/components/schemas/Objective'
+    Objective:
+      type: string
+      example: '["minimise-unassigned","balance-distance"]'
+      enum:
+      - MinimizeCost
+      - MinimizeTours
+      - MaximizeTours
+      - MinimizeUnassignedJobs
+      - BalanceMaxLoad
+      - BalanceActivities
+      - BalanceDistance
+      - BalanceDuration
     Fleet:
       required:
       - profiles
@@ -215,6 +243,13 @@ components:
           type: string
         vehicle_ids:
           type: array
+          example:
+          - VEH23984
+          - vehicle_1
+          - vehicle_2
+          - vehicle_3
+          - vehicle_4
+          - vehicle_5
           items:
             type: string
         profile:
@@ -229,7 +264,7 @@ components:
           type: array
           items:
             type: number
-            example: 1
+            example: 20
         skills:
           $ref: '#/components/schemas/Skills'
         limits:
@@ -242,8 +277,10 @@ components:
       properties:
         name:
           type: string
+          example: car
         type:
           type: string
+          example: car
         speed:
           type: number
     VehicleShift:
@@ -313,9 +350,11 @@ components:
       properties:
         distance:
           type: number
+          example: 0.00020
         time:
           type: number
           description: cost per time  unit
+          example: 0.005
         duration:
           $ref: '#/components/schemas/Duration'
     Plan:
@@ -411,7 +450,7 @@ components:
               $ref: '#/components/schemas/Time'
     Duration:
       type: number
-      example: 30.59
+      example: 180.0
     Relation:
       required:
       - jobs
@@ -421,7 +460,10 @@ components:
       properties:
         type:
           type: string
-          example: TODO THIS IS AN ENUM
+          enum:
+          - Any
+          - Sequence
+          - Strict
         jobs:
           type: array
           items:
@@ -506,7 +548,7 @@ components:
           example: OXSAKS58473
         type_id:
           type: string
-          example: TODO THIS ONE !!!!! ENUM expected
+          example: vehicle
         shift_index:
           type: number
           example: 1
@@ -612,11 +654,11 @@ components:
         lat:
           type: number
           description: The latitude of the location
-          example: 51.0
+          example: 52.4664257
         lng:
           type: number
           description: The longitude of the location
-          example: 0.03874
+          example: 13.2812488
     UnassignedJob:
       type: object
       properties:
