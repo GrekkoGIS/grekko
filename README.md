@@ -21,5 +21,6 @@ Brain dump of otherwise stuff to add:
 gRPC & REST
 caching
 async workflow
+finish swagger
 
 Add creds to libraries, data stuff
