@@ -278,8 +278,7 @@ components:
           items:
             type: array
             items:
-              type: string
-              example: TODO TIME
+              $ref: '#/components/schemas/Time'
         tag:
           type: string
     VehicleBreak:
@@ -289,8 +288,7 @@ components:
       type: object
       properties:
         time:
-          type: string
-          example: TODO SOME ENUM
+          $ref: '#/components/schemas/Time'
         duration:
           $ref: '#/components/schemas/Duration'
         locations:
@@ -304,8 +302,7 @@ components:
       type: object
       properties:
         time:
-          type: string
-          description: vehicle start or end tiome
+          $ref: '#/components/schemas/Time'
         location:
           $ref: '#/components/schemas/Location'
     VehicleCosts:
@@ -318,6 +315,7 @@ components:
           type: number
         time:
           type: number
+          description: cost per time  unit
         duration:
           $ref: '#/components/schemas/Duration'
     Plan:
@@ -410,8 +408,7 @@ components:
           items:
             type: array
             items:
-              type: string
-              example: 2020-10-02T15:00:00.05Z
+              $ref: '#/components/schemas/Time'
     Duration:
       type: number
       example: 30.59
@@ -567,15 +564,14 @@ components:
       type: object
       properties:
         arrival:
-          type: string
-          description: Arrival time specified in RFC3339 format
-          format: date-time
-          example: 2020-10-02T15:00:00.05Z
+          $ref: '#/components/schemas/Time'
         departure:
-          type: string
-          description: Departure time specified in RFC3339 format
-          format: date-time
-          example: 2020-10-02T18:00:00.05Z
+          $ref: '#/components/schemas/Time'
+    Time:
+      type: string
+      description: time specified in RFC3339 format
+      format: date-time
+      example: 2020-10-02T15:00:00.05Z
     Activity:
       required:
       - job_id
@@ -669,7 +665,4 @@ components:
           type: number
           example: 29
         timestamp:
-          type: string
-          description: I
-          format: date-time
-          example: 2016-08-29T09:12:33.001Z
+          $ref: '#/components/schemas/Time'
