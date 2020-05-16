@@ -443,7 +443,7 @@ components:
               $ref: '#/components/schemas/Time'
     Duration:
       type: number
-      example: 30.59
+      example: 180.0
     Relation:
       required:
       - jobs
@@ -541,7 +541,7 @@ components:
           example: OXSAKS58473
         type_id:
           type: string
-          example: TODO THIS ONE !!!!! ENUM expected
+          example: vehicle
         shift_index:
           type: number
           example: 1
