@@ -277,18 +277,20 @@ components:
           type: number
           description: The distance travelled since the start job
           example: 5
-    Location:
+    Schedule:
       type: object
       properties:
         arrival:
           type: string
           description: Arrival time specified in RFC3339 format
-          example: "51.0"
+          format: date-time
+          example: 2020-10-02T15:00:00.05Z
         departure:
           type: string
           description: Departure time specified in RFC3339 format
-          example: "0.03874"
-    Schedule:
+          format: date-time
+          example: 2020-10-02T18:00:00.05Z
+    Location:
       type: object
       properties:
         lat:
