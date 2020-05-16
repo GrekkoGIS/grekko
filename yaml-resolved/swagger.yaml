@@ -272,15 +272,13 @@ components:
         location:
           $ref: '#/components/schemas/Location'
         duration:
-          type: number
-          example: 50.3
+          $ref: '#/components/schemas/Duration'
         times:
           type: array
           items:
             type: array
             items:
-              type: string
-              example: TODO TIME
+              $ref: '#/components/schemas/Time'
         tag:
           type: string
     VehicleBreak:
@@ -290,11 +288,9 @@ components:
       type: object
       properties:
         time:
-          type: string
-          example: TODO SOME ENUM
+          $ref: '#/components/schemas/Time'
         duration:
-          type: number
-          example: 34.5
+          $ref: '#/components/schemas/Duration'
         locations:
           type: array
           items:
@@ -306,8 +302,7 @@ components:
       type: object
       properties:
         time:
-          type: string
-          description: vehicle start or end tiome
+          $ref: '#/components/schemas/Time'
         location:
           $ref: '#/components/schemas/Location'
     VehicleCosts:
@@ -320,8 +315,9 @@ components:
           type: number
         time:
           type: number
+          description: cost per time  unit
         duration:
-          type: number
+          $ref: '#/components/schemas/Duration'
     Plan:
       required:
       - jobs
@@ -406,15 +402,16 @@ components:
         location:
           $ref: '#/components/schemas/Location'
         duration:
-          type: number
-          example: 59.3
+          $ref: '#/components/schemas/Duration'
         times:
           type: array
           items:
             type: array
             items:
-              type: string
-              example: 2020-10-02T15:00:00.05Z
+              $ref: '#/components/schemas/Time'
+    Duration:
+      type: number
+      example: 30.59
     Relation:
       required:
       - jobs
@@ -483,9 +480,7 @@ components:
           description: The overall distance travelled in miles
           example: 500
         duration:
-          type: string
-          description: The total duration in hours
-          example: 1:30
+          $ref: '#/components/schemas/Duration'
         driving:
           type: string
           description: The total time spent driving
@@ -569,15 +564,14 @@ components:
       type: object
       properties:
         arrival:
-          type: string
-          description: Arrival time specified in RFC3339 format
-          format: date-time
-          example: 2020-10-02T15:00:00.05Z
+          $ref: '#/components/schemas/Time'
         departure:
-          type: string
-          description: Departure time specified in RFC3339 format
-          format: date-time
-          example: 2020-10-02T18:00:00.05Z
+          $ref: '#/components/schemas/Time'
+    Time:
+      type: string
+      description: time specified in RFC3339 format
+      format: date-time
+      example: 2020-10-02T15:00:00.05Z
     Activity:
       required:
       - job_id
@@ -649,6 +643,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Iteration'
+      description: |-
+        # Extras
+        Contains extra information about the solution
     Iteration:
       required:
       - cost
@@ -660,18 +657,24 @@ components:
       properties:
         number:
           type: number
+          description: the iteration number
           example: 34
         cost:
           type: number
+          description: the best known cost
           example: 373.0
         tours:
           type: number
+          description: the amount of tours
           example: 28
         unassigned:
           type: number
+          description: the amount of unassigned jobs
           example: 29
         timestamp:
-          type: string
-          description: I
-          format: date-time
-          example: 2016-08-29T09:12:33.001Z
+          type: number
+          description: elapsed time in seconds
+          example: 45
+      description: |-
+        # Iteration
+        Defines the iteration model
