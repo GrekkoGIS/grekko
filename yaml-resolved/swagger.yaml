@@ -168,10 +168,11 @@ paths:
           description: Input postcodes/coordinates could not be found
 components:
   schemas:
-    SimpleSolution:
+    Solution:
       required:
       - statistics
       - tours
+      - unassigned
       type: object
       properties:
         statistics:
@@ -183,7 +184,23 @@ components:
         unassigned:
           type: array
           items:
+            $ref: '#/components/schemas/UnassignedJob'
+        extras:
+          $ref: '#/components/schemas/Extras'
+    SimpleSolution:
+      required:
+      - tours
+      - unassigned
+      type: object
+      properties:
+        tours:
+          type: array
+          items:
             $ref: '#/components/schemas/Tour'
+        unassigned:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnassignedJob'
     Statistic:
       required:
       - distance
@@ -278,6 +295,57 @@ components:
           type: number
           description: The longitude of the location
           example: 0.03874
+    UnassignedJob:
+      type: object
+      properties:
+        job_id:
+          type: string
+          example: OXXJ38347
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnassignedJobReason'
+    UnassignedJobReason:
+      type: object
+      properties:
+        code:
+          type: number
+          example: 232
+        description:
+          type: string
+          example: the job was unassigned because no address could be found for it
+    Extras:
+      type: object
+      properties:
+        performance:
+          type: array
+          items:
+            $ref: '#/components/schemas/Iteration'
+    Iteration:
+      required:
+      - cost
+      - number
+      - timestamp
+      - tours
+      - unassigned
+      type: object
+      properties:
+        number:
+          type: number
+          example: 34
+        cost:
+          type: number
+          example: 373.0
+        tours:
+          type: number
+          example: 28
+        unassigned:
+          type: number
+          example: 29
+        timestamp:
+          type: string
+          format: date-time
+          example: 2016-08-29T09:12:33.001Z
     InventoryItem:
       required:
       - id
