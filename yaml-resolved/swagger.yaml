@@ -165,7 +165,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SimpleSolution'
+              $ref: '#/components/schemas/Plan'
         required: true
       responses:
         "200":
@@ -180,6 +180,104 @@ paths:
           description: Input postcodes/coordinates could not be found
 components:
   schemas:
+    Plan:
+      required:
+      - jobs
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        relations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relation'
+    Job:
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          type: string
+          example: 2932872OX
+        pickups:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobTask'
+        deliveries:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobTask'
+        replacements:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobTask'
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobTask'
+        priority:
+          type: number
+          description: lower the better flesh this out
+          example: 1
+        skills:
+          type: array
+          description: a list of skills required to fulfill this job
+          items:
+            type: number
+            example: 1
+    JobTask:
+      required:
+      - places
+      type: object
+      properties:
+        places:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobPlace'
+        tag:
+          type: string
+          example: parcel-tag
+    JobPlace:
+      required:
+      - duration
+      - location
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        duration:
+          type: number
+          example: 59.3
+        times:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+              example: 2020-10-02T15:00:00.05Z
+    Relation:
+      required:
+      - jobs
+      - type
+      - vehicle_id
+      type: object
+      properties:
+        type:
+          type: string
+          example: TODO THIS IS AN ENUM
+        jobs:
+          type: array
+          items:
+            type: string
+            example: JOBID82437
+        vehicle_id:
+          type: string
+          example: VEH23984
+        shift_index:
+          type: number
+          example: 23
     Solution:
       required:
       - statistics
