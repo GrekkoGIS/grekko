@@ -448,7 +448,10 @@ components:
       properties:
         type:
           type: string
-          example: TODO THIS IS AN ENUM
+          enum:
+          - Any
+          - Sequence
+          - Strict
         jobs:
           type: array
           items:
