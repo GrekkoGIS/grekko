@@ -1,0 +1,680 @@
+openapi: 3.0.0
+info:
+  title: Grekko
+  description: This is the backend for Grekko, a geoprocessing API
+  contact:
+    email: awesomealpineibex@gmail.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.0.1
+servers:
+- url: https://virtserver.swaggerhub.com/Ddall/Grekko/1.0.0
+  description: SwaggerHub API Auto Mocking
+tags:
+- name: geocoding
+  description: Geocoding operations, they may evolve to query parameters in the future
+- name: vehicle routing
+  description: Operations involving vehicle routing and most efficient paths
+paths:
+  /geocoding/reverse:
+    get:
+      tags:
+      - geocoding
+      summary: Performs forward geocoding on a postcode
+      description: |
+        # Reverse Geocoding
+        By providing a latitude and longitude, you will recieve a postcode.
+      operationId: reverseGeocoding
+      parameters:
+      - name: latitude
+        in: path
+        description: the latitude of the coordinate
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: number
+      - name: longitude
+        in: path
+        description: the longitude of the coordinate
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: number
+      responses:
+        "200":
+          description: search results matching criteria
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: BS11AA
+        "404":
+          description: coordinates don't exist
+  /geocoding/forward:
+    get:
+      tags:
+      - geocoding
+      summary: Performs forward geocoding on a postcode
+      description: |
+        # Forward geocoding
+        By providing a valid postcode, you will recieve a latitude and longitude for it.
+      operationId: forwardGeocoding
+      parameters:
+      - name: postcode
+        in: path
+        description: the postcode to convert
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: search results matching criteria
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 51.509865,-0.118092
+        "404":
+          description: postcode doesn't exist
+  /routing/solver/simple:
+    get:
+      tags:
+      - vehicle routing
+      summary: Perform a simple vehicle routing problem with minimal constraints
+      description: |
+        # Simple Vehicle Routing Problem
+        This endpoint will allow you to pass simple query parameters of vehicles and jobs, this would then calculate the best solution in the most minimum time possible if all vehicles end at their start position.
+      operationId: simpleProblem
+      parameters:
+      - name: coordinateVehicles
+        in: query
+        description: The list of vehicle coordinates that would be input to the problem
+          matrix. This is required if postcodeVehicles were not supplied.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            type: string
+            example: 51.509865,-0.118092;
+      - name: coordinateJobs
+        in: query
+        description: The list of job coordinates that would be input to the problem
+          matrix. This is required if postcodeJobs were not supplied.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            type: string
+            example: 51.509865,-0.118092;
+      - name: postcodeVehicles
+        in: query
+        description: The list of vehicle postcodes that would be input to the problem
+          matrix. This is required if coordinateVehicles were not supplied.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            type: string
+            example: BS11AA;
+      - name: postcodeJobs
+        in: query
+        description: The list of job postcodes that would be input to the problem
+          matrix. This is required if coordinateJobs were not supplied.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            type: string
+            example: BS11AA;
+      responses:
+        "200":
+          description: The route response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleSolution'
+        "400":
+          description: Bad input parameters
+        "422":
+          description: Input postcodes/coordinates could not be found
+  /routing/solver:
+    post:
+      tags:
+      - vehicle routing
+      summary: Perform a vehicle routing problem
+      description: |
+        # Vehicle Routing Problem
+        This endpoint will allow you to pass simple query parameters of vehicles and jobs, this would then calculate the best solution in the most minimum time possible if all vehicles end at their start position.
+      operationId: problem
+      requestBody:
+        description: the request body encompasses all required parameters to try and
+          solve the problem
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Problem'
+        required: true
+      responses:
+        "200":
+          description: The route response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Solution'
+        "400":
+          description: Bad input parameters
+        "422":
+          description: Input postcodes/coordinates could not be found
+components:
+  schemas:
+    Problem:
+      required:
+      - plan
+      type: object
+      properties:
+        plan:
+          $ref: '#/components/schemas/Plan'
+        fleet:
+          $ref: '#/components/schemas/Fleet'
+    Fleet:
+      required:
+      - profiles
+      - vehicles
+      properties:
+        vehicles:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleType'
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Profile'
+    VehicleType:
+      required:
+      - capacity
+      - costs
+      - profile
+      - shifts
+      - type_id
+      - vehicle_ids
+      properties:
+        type_id:
+          type: string
+        vehicle_ids:
+          type: array
+          items:
+            type: string
+        profile:
+          type: string
+        costs:
+          $ref: '#/components/schemas/VehicleCosts'
+        shifts:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleShift'
+        capacity:
+          type: array
+          items:
+            type: number
+            example: 1
+        skills:
+          $ref: '#/components/schemas/Skills'
+        limits:
+          $ref: '#/components/schemas/VehicleLimits'
+    Profile:
+      required:
+      - name
+      - type
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        speed:
+          type: number
+    VehicleShift:
+      required:
+      - start
+      type: object
+      properties:
+        start:
+          $ref: '#/components/schemas/VehiclePlace'
+        end:
+          $ref: '#/components/schemas/VehiclePlace'
+        breaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleBreak'
+        reloads:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleReload'
+    VehicleReload:
+      required:
+      - duration
+      - location
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        duration:
+          $ref: '#/components/schemas/Duration'
+        times:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/Time'
+        tag:
+          type: string
+    VehicleBreak:
+      required:
+      - duration
+      - time
+      type: object
+      properties:
+        time:
+          $ref: '#/components/schemas/Time'
+        duration:
+          $ref: '#/components/schemas/Duration'
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+    VehiclePlace:
+      required:
+      - location
+      - time
+      type: object
+      properties:
+        time:
+          $ref: '#/components/schemas/Time'
+        location:
+          $ref: '#/components/schemas/Location'
+    VehicleCosts:
+      required:
+      - distance
+      - time
+      type: object
+      properties:
+        distance:
+          type: number
+        time:
+          type: number
+          description: cost per time  unit
+        duration:
+          $ref: '#/components/schemas/Duration'
+    Plan:
+      required:
+      - jobs
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        relations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relation'
+    Job:
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          type: string
+          example: 2932872OX
+        pickups:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobTask'
+        deliveries:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobTask'
+        replacements:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobTask'
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobTask'
+        priority:
+          type: number
+          description: lower the better flesh this out
+          example: 1
+        skills:
+          $ref: '#/components/schemas/Skills'
+    VehicleLimits:
+      type: object
+      properties:
+        max_distance:
+          type: number
+          example: 50.0
+        shift_time:
+          type: number
+        allowed_areas:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/Location'
+    Skills:
+      type: array
+      description: a list of skills required to fulfill this job
+      items:
+        type: number
+        example: 1
+    JobTask:
+      required:
+      - places
+      type: object
+      properties:
+        places:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobPlace'
+        tag:
+          type: string
+          example: parcel-tag
+    JobPlace:
+      required:
+      - duration
+      - location
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        duration:
+          $ref: '#/components/schemas/Duration'
+        times:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/Time'
+    Duration:
+      type: number
+      example: 30.59
+    Relation:
+      required:
+      - jobs
+      - type
+      - vehicle_id
+      type: object
+      properties:
+        type:
+          type: string
+          example: TODO THIS IS AN ENUM
+        jobs:
+          type: array
+          items:
+            type: string
+            example: JOBID82437
+        vehicle_id:
+          type: string
+          example: VEH23984
+        shift_index:
+          type: number
+          example: 23
+    Solution:
+      required:
+      - statistics
+      - tours
+      - unassigned
+      type: object
+      properties:
+        statistics:
+          $ref: '#/components/schemas/Statistic'
+        tours:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tour'
+        unassigned:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnassignedJob'
+        extras:
+          $ref: '#/components/schemas/Extras'
+      description: The verbose solution providing statistics, tours and unassigned
+        jobs. This will also provide further details such as extras.
+    SimpleSolution:
+      required:
+      - tours
+      - unassigned
+      type: object
+      properties:
+        tours:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimplifiedTour'
+        unassigned:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnassignedJob'
+    Statistic:
+      required:
+      - distance
+      - driving
+      - duration
+      type: object
+      properties:
+        distance:
+          type: number
+          description: The overall distance travelled in miles
+          example: 500
+        duration:
+          $ref: '#/components/schemas/Duration'
+        driving:
+          type: string
+          description: The total time spent driving
+          example: 5:30
+        serving:
+          type: string
+          description: The total time spent serving jobs
+          example: 2:10
+        waiting:
+          type: string
+          description: The total time spent waiting
+          example: 5:30
+    Tour:
+      required:
+      - shift_index
+      - statistic
+      - type_id
+      - vehicle_id
+      type: object
+      properties:
+        vehicle_id:
+          type: string
+          example: OXSAKS58473
+        type_id:
+          type: string
+          example: TODO THIS ONE !!!!! ENUM expected
+        shift_index:
+          type: number
+          example: 1
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/Stop'
+        statistic:
+          $ref: '#/components/schemas/Statistic'
+    SimplifiedTour:
+      required:
+      - vehicle_index
+      type: object
+      properties:
+        vehicle_index:
+          type: number
+          example: 1
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimplifiedStop'
+    Stop:
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        distance:
+          type: number
+          description: The distance travelled since the start
+          example: 5
+        load:
+          type: array
+          items:
+            type: number
+            example: 5
+        activities:
+          type: array
+          description: Activities performed during this stop
+          items:
+            $ref: '#/components/schemas/Activity'
+    SimplifiedStop:
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        distance:
+          type: number
+          description: The distance travelled since the start job
+          example: 5
+    Schedule:
+      type: object
+      properties:
+        arrival:
+          $ref: '#/components/schemas/Time'
+        departure:
+          $ref: '#/components/schemas/Time'
+    Time:
+      type: string
+      description: time specified in RFC3339 format
+      format: date-time
+      example: 2020-10-02T15:00:00.05Z
+    Activity:
+      required:
+      - job_id
+      - type
+      type: object
+      properties:
+        job_id:
+          type: string
+          example: OXOXOX8383
+        type:
+          type: string
+          example: TODO SOME ENUM
+        location:
+          $ref: '#/components/schemas/Location'
+        time:
+          $ref: '#/components/schemas/Interval'
+        job_tag:
+          type: string
+          description: An optional tag for the job
+          example: TODO SOME ENUM
+    Interval:
+      required:
+      - end
+      - start
+      type: object
+      properties:
+        start:
+          type: string
+          format: time
+          example: 09:12:33.001Z
+        end:
+          type: string
+          format: time
+          example: 09:12:33.001Z
+    Location:
+      type: object
+      properties:
+        lat:
+          type: number
+          description: The latitude of the location
+          example: 51.0
+        lng:
+          type: number
+          description: The longitude of the location
+          example: 0.03874
+    UnassignedJob:
+      type: object
+      properties:
+        job_id:
+          type: string
+          example: OXXJ38347
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnassignedJobReason'
+    UnassignedJobReason:
+      type: object
+      properties:
+        code:
+          type: number
+          example: 232
+        description:
+          type: string
+          example: the job was unassigned because no address could be found for it
+    Extras:
+      type: object
+      properties:
+        performance:
+          type: array
+          items:
+            $ref: '#/components/schemas/Iteration'
+      description: |-
+        # Extras
+        Contains extra information about the solution
+    Iteration:
+      required:
+      - cost
+      - number
+      - timestamp
+      - tours
+      - unassigned
+      type: object
+      properties:
+        number:
+          type: number
+          description: the iteration number
+          example: 34
+        cost:
+          type: number
+          description: the best known cost
+          example: 373.0
+        tours:
+          type: number
+          description: the amount of tours
+          example: 28
+        unassigned:
+          type: number
+          description: the amount of unassigned jobs
+          example: 29
+        timestamp:
+          type: number
+          description: elapsed time in seconds
+          example: 45
+      description: |-
+        # Iteration
+        Defines the iteration model
