@@ -147,6 +147,33 @@ paths:
           description: Bad input parameters
         "422":
           description: Input postcodes/coordinates could not be found
+  /vrp:
+    post:
+      tags:
+      - vehicle routing
+      summary: Perform a vehicle routing problem
+      description: |
+        This endpoint will allow you to pass simple query parameters of vehicles and jobs, this would then calculate the best solution in the most minimum time possible if all vehicles end at their start position.
+      operationId: problem
+      requestBody:
+        description: the request body encompasses all required parameters to try and
+          solve the problem
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimpleSolution'
+        required: true
+      responses:
+        "200":
+          description: The route response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Solution'
+        "400":
+          description: Bad input parameters
+        "422":
+          description: Input postcodes/coordinates could not be found
 components:
   schemas:
     Solution:
