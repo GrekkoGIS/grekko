@@ -7,7 +7,7 @@ output-path: ./lcov.info
 prefix-dir: /home/user/build/
 ignore:
   - "/*"
-  - "C:/*"
+  - "C:/*"  
   - "../*"
 path-mapping:
   - "/path1"
