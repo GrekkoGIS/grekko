@@ -234,12 +234,12 @@ components:
           $ref: '#/components/schemas/Statistic'
     SimplifiedTour:
       required:
-      - vehicle_id
+      - vehicle_index
       type: object
       properties:
-        vehicle_id:
-          type: string
-          example: OXSAKS58473
+        vehicle_index:
+          type: number
+          example: 1
         stops:
           type: array
           items:
@@ -253,7 +253,7 @@ components:
           $ref: '#/components/schemas/Schedule'
         distance:
           type: number
-          description: The distance travelled since the start job
+          description: The distance travelled since the start
           example: 5
         load:
           type: array
@@ -264,8 +264,7 @@ components:
           type: array
           description: Activities performed during this stop
           items:
-            type: number
-            example: 5
+            $ref: '#/components/schemas/Activity'
     SimplifiedStop:
       type: object
       properties:
@@ -290,6 +289,40 @@ components:
           description: Departure time specified in RFC3339 format
           format: date-time
           example: 2020-10-02T18:00:00.05Z
+    Activity:
+      required:
+      - job_id
+      - type
+      type: object
+      properties:
+        job_id:
+          type: string
+          example: OXOXOX8383
+        type:
+          type: string
+          example: TODO SOME ENUM
+        location:
+          $ref: '#/components/schemas/Location'
+        time:
+          $ref: '#/components/schemas/Interval'
+        job_tag:
+          type: string
+          description: An optional tag for the job
+          example: TODO SOME ENUM
+    Interval:
+      required:
+      - end
+      - start
+      type: object
+      properties:
+        start:
+          type: string
+          format: time
+          example: 09:12:33.001Z
+        end:
+          type: string
+          format: time
+          example: 09:12:33.001Z
     Location:
       type: object
       properties:
