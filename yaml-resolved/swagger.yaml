@@ -257,7 +257,7 @@ components:
           type: array
           items:
             type: number
-            example: 1
+            example: 20
         skills:
           $ref: '#/components/schemas/Skills'
         limits:
@@ -343,9 +343,11 @@ components:
       properties:
         distance:
           type: number
+          example: 0.00020
         time:
           type: number
           description: cost per time  unit
+          example: 0.005
         duration:
           $ref: '#/components/schemas/Duration'
     Plan:
@@ -462,7 +464,7 @@ components:
             example: JOBID82437
         vehicle_id:
           type: string
-          example: VEH23984
+          example: '["VEH23984","vehicle_1","vehicle_2","vehicle_3","vehicle_4","vehicle_5"]'
         shift_index:
           type: number
           example: 23
@@ -645,11 +647,11 @@ components:
         lat:
           type: number
           description: The latitude of the location
-          example: 51.0
+          example: 52.4664257
         lng:
           type: number
           description: The longitude of the location
-          example: 0.03874
+          example: 13.2812488
     UnassignedJob:
       type: object
       properties:
