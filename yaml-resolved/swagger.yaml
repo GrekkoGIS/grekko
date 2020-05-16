@@ -272,8 +272,7 @@ components:
         location:
           $ref: '#/components/schemas/Location'
         duration:
-          type: number
-          example: 50.3
+          $ref: '#/components/schemas/Duration'
         times:
           type: array
           items:
@@ -293,8 +292,7 @@ components:
           type: string
           example: TODO SOME ENUM
         duration:
-          type: number
-          example: 34.5
+          $ref: '#/components/schemas/Duration'
         locations:
           type: array
           items:
@@ -321,7 +319,7 @@ components:
         time:
           type: number
         duration:
-          type: number
+          $ref: '#/components/schemas/Duration'
     Plan:
       required:
       - jobs
@@ -406,8 +404,7 @@ components:
         location:
           $ref: '#/components/schemas/Location'
         duration:
-          type: number
-          example: 59.3
+          $ref: '#/components/schemas/Duration'
         times:
           type: array
           items:
@@ -415,6 +412,9 @@ components:
             items:
               type: string
               example: 2020-10-02T15:00:00.05Z
+    Duration:
+      type: number
+      example: 30.59
     Relation:
       required:
       - jobs
@@ -483,9 +483,7 @@ components:
           description: The overall distance travelled in miles
           example: 500
         duration:
-          type: string
-          description: The total duration in hours
-          example: 1:30
+          $ref: '#/components/schemas/Duration'
         driving:
           type: string
           description: The total time spent driving
