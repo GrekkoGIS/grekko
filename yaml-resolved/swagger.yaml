@@ -182,6 +182,7 @@ components:
   schemas:
     Problem:
       required:
+      - fleet
       - plan
       type: object
       properties:
@@ -189,6 +190,32 @@ components:
           $ref: '#/components/schemas/Plan'
         fleet:
           $ref: '#/components/schemas/Fleet'
+        objectives:
+          $ref: '#/components/schemas/Objectives'
+    Objectives:
+      required:
+      - primary
+      type: object
+      properties:
+        primary:
+          type: array
+          items:
+            $ref: '#/components/schemas/Objective'
+        secondary:
+          type: array
+          items:
+            $ref: '#/components/schemas/Objective'
+    Objective:
+      type: string
+      enum:
+      - MinimizeCost
+      - MinimizeTours
+      - MaximizeTours
+      - MinimizeUnassignedJobs
+      - BalanceMaxLoad
+      - BalanceActivities
+      - BalanceDistance
+      - BalanceDuration
     Fleet:
       required:
       - profiles
