@@ -1,183 +1,198 @@
 openapi: 3.0.0
-# Added by API Auto Mocking Plugin
-servers:
-  - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/Ddall/Grekko/1.0.0
 info:
-  description: This is the backend for Grekko, a geoprocessing API
-  version: "0.0.1"
   title: Grekko
+  description: This is the backend for Grekko, a geoprocessing API
   contact:
     email: awesomealpineibex@gmail.com
   license:
     name: Apache 2.0
-    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.0.1
+servers:
+- url: https://virtserver.swaggerhub.com/Ddall/Grekko/1.0.0
+  description: SwaggerHub API Auto Mocking
 tags:
-  - name: geocoding
-    description: Geocoding operations, they may evolve to query parameters in the future
-  - name: vehicle routing
-    description: Operations involving vehicle routing and most efficient paths
-
+- name: geocoding
+  description: Geocoding operations, they may evolve to query parameters in the future
+- name: vehicle routing
+  description: Operations involving vehicle routing and most efficient paths
 paths:
   /geocoding/reverse:
     get:
       tags:
-        - geocoding
+      - geocoding
       summary: Performs forward geocoding on a postcode
-      operationId: reverseGeocoding
       description: |
         # Reverse Geocoding
         By providing a latitude and longitude, you will recieve a postcode.
+      operationId: reverseGeocoding
       parameters:
-        - in: path
-          name: latitude
-          description: the latitude of the coordinate
-          required: true
-          schema:
-            type: number
-        - in: path
-          name: longitude
-          description: the longitude of the coordinate
-          required: true
-          schema:
-            type: number
+      - name: latitude
+        in: path
+        description: the latitude of the coordinate
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: number
+      - name: longitude
+        in: path
+        description: the longitude of the coordinate
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: number
       responses:
-        '200':
+        "200":
           description: search results matching criteria
           content:
             text/plain:
               schema:
                 type: string
                 example: BS11AA
-        '404':
+        "404":
           description: coordinates don't exist
   /geocoding/forward:
     get:
       tags:
-        - geocoding
+      - geocoding
       summary: Performs forward geocoding on a postcode
-      operationId: forwardGeocoding
       description: |
         # Forward geocoding
         By providing a valid postcode, you will recieve a latitude and longitude for it.
+      operationId: forwardGeocoding
       parameters:
-        - in: path
-          name: postcode
-          description: the postcode to convert
-          required: true
-          schema:
-            type: string
+      - name: postcode
+        in: path
+        description: the postcode to convert
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
       responses:
-        '200':
+        "200":
           description: search results matching criteria
           content:
             text/plain:
               schema:
                 type: string
                 example: 51.509865,-0.118092
-        '404':
+        "404":
           description: postcode doesn't exist
   /routing/solver/simple:
     get:
       tags:
-        - vehicle routing
+      - vehicle routing
       summary: Perform a simple vehicle routing problem with minimal constraints
-      operationId: simpleProblem
       description: |
         # Simple Vehicle Routing Problem
         This endpoint will allow you to pass simple query parameters of vehicles and jobs, this would then calculate the best solution in the most minimum time possible if all vehicles end at their start position.
+      operationId: simpleProblem
       parameters:
-        - in: query
-          name: coordinateVehicles
-          description: The list of vehicle coordinates that would be input to the problem matrix. This is required if postcodeVehicles were not supplied.
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              example: "51.509865,-0.118092;"
-        - in: query
-          name: coordinateJobs
-          description: The list of job coordinates that would be input to the problem matrix. This is required if postcodeJobs were not supplied.
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              example: "51.509865,-0.118092;"
-        - in: query
-          name: postcodeVehicles
-          description: The list of vehicle postcodes that would be input to the problem matrix. This is required if coordinateVehicles were not supplied.
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              example: "BS11AA;"
-        - in: query
-          name: postcodeJobs
-          description: The list of job postcodes that would be input to the problem matrix. This is required if coordinateJobs were not supplied.
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              example: "BS11AA;"
+      - name: coordinateVehicles
+        in: query
+        description: The list of vehicle coordinates that would be input to the problem
+          matrix. This is required if postcodeVehicles were not supplied.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            type: string
+            example: 51.509865,-0.118092;
+      - name: coordinateJobs
+        in: query
+        description: The list of job coordinates that would be input to the problem
+          matrix. This is required if postcodeJobs were not supplied.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            type: string
+            example: 51.509865,-0.118092;
+      - name: postcodeVehicles
+        in: query
+        description: The list of vehicle postcodes that would be input to the problem
+          matrix. This is required if coordinateVehicles were not supplied.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            type: string
+            example: BS11AA;
+      - name: postcodeJobs
+        in: query
+        description: The list of job postcodes that would be input to the problem
+          matrix. This is required if coordinateJobs were not supplied.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            type: string
+            example: BS11AA;
       responses:
-        '200':
+        "200":
           description: The route response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SimpleSolution'
-        '400':
+        "400":
           description: Bad input parameters
-        '422':
+        "422":
           description: Input postcodes/coordinates could not be found
   /routing/solver:
     post:
       tags:
-        - vehicle routing
+      - vehicle routing
       summary: Perform a vehicle routing problem
-      operationId: problem
       description: |
         # Vehicle Routing Problem
         This endpoint will allow you to pass simple query parameters of vehicles and jobs, this would then calculate the best solution in the most minimum time possible if all vehicles end at their start position.
+      operationId: problem
       requestBody:
-        description: the request body encompasses all required parameters to try and solve the problem
-        required: true
+        description: the request body encompasses all required parameters to try and
+          solve the problem
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Problem'
+        required: true
       responses:
-        '200':
+        "200":
           description: The route response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Solution'
-        '400':
+        "400":
           description: Bad input parameters
-        '422':
+        "422":
           description: Input postcodes/coordinates could not be found
-
 components:
   schemas:
     Problem:
-      type: object
       required:
-        - plan
+      - plan
+      type: object
       properties:
         plan:
           $ref: '#/components/schemas/Plan'
         fleet:
           $ref: '#/components/schemas/Fleet'
-
     Fleet:
       required:
-        - vehicles
-        - profiles
+      - profiles
+      - vehicles
       properties:
         vehicles:
           type: array
@@ -187,15 +202,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Profile'
-
     VehicleType:
       required:
-        - type_id
-        - vehicle_ids
-        - profile
-        - costs
-        - shifts
-        - capacity
+      - capacity
+      - costs
+      - profile
+      - shifts
+      - type_id
+      - vehicle_ids
       properties:
         type_id:
           type: string
@@ -220,12 +234,11 @@ components:
           $ref: '#/components/schemas/Skills'
         limits:
           $ref: '#/components/schemas/VehicleLimits'
-
     Profile:
-      type: object
       required:
-        - name
-        - type
+      - name
+      - type
+      type: object
       properties:
         name:
           type: string
@@ -233,11 +246,10 @@ components:
           type: string
         speed:
           type: number
-
     VehicleShift:
-      type: object
       required:
-        - start
+      - start
+      type: object
       properties:
         start:
           $ref: '#/components/schemas/VehiclePlace'
@@ -251,12 +263,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VehicleReload'
-
     VehicleReload:
-      type: object
       required:
-        - location
-        - duration
+      - duration
+      - location
+      type: object
       properties:
         location:
           $ref: '#/components/schemas/Location'
@@ -271,48 +282,45 @@ components:
         tag:
           type: string
     VehicleBreak:
-      type: object
       required:
-        - time
-        - duration
+      - duration
+      - time
+      type: object
       properties:
         time:
           $ref: '#/components/schemas/Time'
-#          $ref: '#/components/schemas/VehicleBreakTime'
         duration:
           $ref: '#/components/schemas/Duration'
         locations:
           type: array
           items:
             $ref: '#/components/schemas/Location'
-
     VehiclePlace:
-      type: object
       required:
-        - time
-        - location
+      - location
+      - time
+      type: object
       properties:
         time:
           $ref: '#/components/schemas/Time'
         location:
           $ref: '#/components/schemas/Location'
-
     VehicleCosts:
-      type: object
       required:
-        - distance
-        - time
+      - distance
+      - time
+      type: object
       properties:
         distance:
           type: number
         time:
-          description: cost per time  unit
           type: number
+          description: cost per time  unit
         duration:
           $ref: '#/components/schemas/Duration'
     Plan:
       required:
-        - jobs
+      - jobs
       type: object
       properties:
         jobs:
@@ -323,11 +331,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Relation'
-
     Job:
-      type: object
       required:
-        - id
+      - id
+      type: object
       properties:
         id:
           type: string
@@ -354,7 +361,6 @@ components:
           example: 1
         skills:
           $ref: '#/components/schemas/Skills'
-
     VehicleLimits:
       type: object
       properties:
@@ -369,18 +375,16 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/Location'
-
     Skills:
-      description: a list of skills required to fulfill this job
       type: array
+      description: a list of skills required to fulfill this job
       items:
         type: number
         example: 1
-
     JobTask:
-      type: object
       required:
-        - places
+      - places
+      type: object
       properties:
         places:
           type: array
@@ -388,13 +392,12 @@ components:
             $ref: '#/components/schemas/JobPlace'
         tag:
           type: string
-          example: 'parcel-tag'
-
+          example: parcel-tag
     JobPlace:
-      type: object
       required:
-        - location
-        - duration
+      - duration
+      - location
+      type: object
       properties:
         location:
           $ref: '#/components/schemas/Location'
@@ -406,39 +409,36 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/Time'
-
     Duration:
       type: number
       example: 30.59
-
     Relation:
-      type: object
       required:
-        - type
-        - jobs
-        - vehicle_id
+      - jobs
+      - type
+      - vehicle_id
+      type: object
       properties:
         type:
           type: string
-          example: "TODO THIS IS AN ENUM"
+          example: TODO THIS IS AN ENUM
         jobs:
           type: array
           items:
             type: string
-            example: "JOBID82437"
+            example: JOBID82437
         vehicle_id:
           type: string
-          example: "VEH23984"
+          example: VEH23984
         shift_index:
           type: number
           example: 23
-
     Solution:
-      type: object
       required:
-        - statistics
-        - tours
-        - unassigned
+      - statistics
+      - tours
+      - unassigned
+      type: object
       properties:
         statistics:
           $ref: '#/components/schemas/Statistic'
@@ -452,13 +452,13 @@ components:
             $ref: '#/components/schemas/UnassignedJob'
         extras:
           $ref: '#/components/schemas/Extras'
-      description: The verbose solution providing statistics, tours and unassigned jobs. This will also provide further details such as extras.
-
+      description: The verbose solution providing statistics, tours and unassigned
+        jobs. This will also provide further details such as extras.
     SimpleSolution:
-      type: object
       required:
-        - tours
-        - unassigned
+      - tours
+      - unassigned
+      type: object
       properties:
         tours:
           type: array
@@ -468,13 +468,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UnassignedJob'
-
     Statistic:
-      type: object
       required:
-        - distance
-        - duration
-        - driving
+      - distance
+      - driving
+      - duration
+      type: object
       properties:
         distance:
           type: number
@@ -485,30 +484,29 @@ components:
         driving:
           type: string
           description: The total time spent driving
-          example: "5:30"
+          example: 5:30
         serving:
           type: string
           description: The total time spent serving jobs
-          example: "2:10"
+          example: 2:10
         waiting:
           type: string
           description: The total time spent waiting
-          example: "5:30"
-
+          example: 5:30
     Tour:
-      type: object
       required:
-        - vehicle_id
-        - type_id
-        - shift_index
-        - statistic
+      - shift_index
+      - statistic
+      - type_id
+      - vehicle_id
+      type: object
       properties:
         vehicle_id:
           type: string
-          example: "OXSAKS58473"
+          example: OXSAKS58473
         type_id:
           type: string
-          example: "TODO THIS ONE !!!!! ENUM expected"
+          example: TODO THIS ONE !!!!! ENUM expected
         shift_index:
           type: number
           example: 1
@@ -518,11 +516,10 @@ components:
             $ref: '#/components/schemas/Stop'
         statistic:
           $ref: '#/components/schemas/Statistic'
-
     SimplifiedTour:
-      type: object
       required:
-        - vehicle_index
+      - vehicle_index
+      type: object
       properties:
         vehicle_index:
           type: number
@@ -531,7 +528,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SimplifiedStop'
-
     Stop:
       type: object
       properties:
@@ -553,7 +549,6 @@ components:
           description: Activities performed during this stop
           items:
             $ref: '#/components/schemas/Activity'
-
     SimplifiedStop:
       type: object
       properties:
@@ -565,7 +560,6 @@ components:
           type: number
           description: The distance travelled since the start job
           example: 5
-
     Schedule:
       type: object
       properties:
@@ -573,25 +567,23 @@ components:
           $ref: '#/components/schemas/Time'
         departure:
           $ref: '#/components/schemas/Time'
-
     Time:
       type: string
       description: time specified in RFC3339 format
       format: date-time
-      example: '2020-10-02T15:00:00.05Z'
-
+      example: 2020-10-02T15:00:00.05Z
     Activity:
-      type: object
       required:
-        - job_id
-        - type
+      - job_id
+      - type
+      type: object
       properties:
         job_id:
           type: string
           example: OXOXOX8383
         type:
           type: string
-          example: 'TODO SOME ENUM'
+          example: TODO SOME ENUM
         location:
           $ref: '#/components/schemas/Location'
         time:
@@ -599,23 +591,21 @@ components:
         job_tag:
           type: string
           description: An optional tag for the job
-          example: 'TODO SOME ENUM'
-
+          example: TODO SOME ENUM
     Interval:
-      type: object
       required:
-        - start
-        - end
+      - end
+      - start
+      type: object
       properties:
         start:
           type: string
           format: time
-          example: '09:12:33.001Z'
+          example: 09:12:33.001Z
         end:
           type: string
           format: time
-          example: '09:12:33.001Z'
-
+          example: 09:12:33.001Z
     Location:
       type: object
       properties:
@@ -627,7 +617,6 @@ components:
           type: number
           description: The longitude of the location
           example: 0.03874
-
     UnassignedJob:
       type: object
       properties:
@@ -638,7 +627,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UnassignedJobReason'
-
     UnassignedJobReason:
       type: object
       properties:
@@ -648,7 +636,6 @@ components:
         description:
           type: string
           example: the job was unassigned because no address could be found for it
-
     Extras:
       type: object
       properties:
@@ -656,28 +643,38 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Iteration'
-
+      description: |-
+        # Extras
+        Contains extra information about the solution
     Iteration:
-      type: object
       required:
-        - number
-        - cost
-        - tours
-        - unassigned
-        - timestamp
+      - cost
+      - number
+      - timestamp
+      - tours
+      - unassigned
+      type: object
       properties:
         number:
           type: number
+          description: the iteration number
           example: 34
         cost:
           type: number
-          example: 373.00
+          description: the best known cost
+          example: 373.0
         tours:
           type: number
+          description: the amount of tours
           example: 28
         unassigned:
           type: number
+          description: the amount of unassigned jobs
           example: 29
         timestamp:
-          $ref: '#/components/schemas/Time'
-
+          type: number
+          description: elapsed time in seconds
+          example: 45
+      description: |-
+        # Iteration
+        Defines the iteration model
