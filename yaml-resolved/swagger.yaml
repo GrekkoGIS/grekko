@@ -165,7 +165,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Plan'
+              $ref: '#/components/schemas/Problem'
         required: true
       responses:
         "200":
@@ -180,6 +180,148 @@ paths:
           description: Input postcodes/coordinates could not be found
 components:
   schemas:
+    Problem:
+      required:
+      - plan
+      type: object
+      properties:
+        plan:
+          $ref: '#/components/schemas/Plan'
+        fleet:
+          $ref: '#/components/schemas/Fleet'
+    Fleet:
+      required:
+      - profiles
+      - vehicles
+      properties:
+        vehicles:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleType'
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Profile'
+    VehicleType:
+      required:
+      - capacity
+      - costs
+      - profile
+      - shifts
+      - type_id
+      - vehicle_ids
+      properties:
+        type_id:
+          type: string
+        vehicle_ids:
+          type: array
+          items:
+            type: string
+        profile:
+          type: string
+        costs:
+          $ref: '#/components/schemas/VehicleCosts'
+        shifts:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleShift'
+        capacity:
+          type: array
+          items:
+            type: number
+            example: 1
+        skills:
+          $ref: '#/components/schemas/Skills'
+        limits:
+          $ref: '#/components/schemas/VehicleLimits'
+    Profile:
+      required:
+      - name
+      - type
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        speed:
+          type: number
+    VehicleShift:
+      required:
+      - start
+      type: object
+      properties:
+        start:
+          $ref: '#/components/schemas/VehiclePlace'
+        end:
+          $ref: '#/components/schemas/VehiclePlace'
+        breaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleBreak'
+        reloads:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleReload'
+    VehicleReload:
+      required:
+      - duration
+      - location
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        duration:
+          type: number
+          example: 50.3
+        times:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+              example: TODO TIME
+        tag:
+          type: string
+    VehicleBreak:
+      required:
+      - duration
+      - time
+      type: object
+      properties:
+        time:
+          type: string
+          example: TODO SOME ENUM
+        duration:
+          type: number
+          example: 34.5
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+    VehiclePlace:
+      required:
+      - location
+      - time
+      type: object
+      properties:
+        time:
+          type: string
+          description: vehicle start or end tiome
+        location:
+          $ref: '#/components/schemas/Location'
+    VehicleCosts:
+      required:
+      - distance
+      - time
+      type: object
+      properties:
+        distance:
+          type: number
+        time:
+          type: number
+        duration:
+          type: number
     Plan:
       required:
       - jobs
@@ -222,11 +364,27 @@ components:
           description: lower the better flesh this out
           example: 1
         skills:
+          $ref: '#/components/schemas/Skills'
+    VehicleLimits:
+      type: object
+      properties:
+        max_distance:
+          type: number
+          example: 50.0
+        shift_time:
+          type: number
+        allowed_areas:
           type: array
-          description: a list of skills required to fulfill this job
           items:
-            type: number
-            example: 1
+            type: array
+            items:
+              $ref: '#/components/schemas/Location'
+    Skills:
+      type: array
+      description: a list of skills required to fulfill this job
+      items:
+        type: number
+        example: 1
     JobTask:
       required:
       - places
