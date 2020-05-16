@@ -243,6 +243,13 @@ components:
           type: string
         vehicle_ids:
           type: array
+          example:
+          - VEH23984
+          - vehicle_1
+          - vehicle_2
+          - vehicle_3
+          - vehicle_4
+          - vehicle_5
           items:
             type: string
         profile:
@@ -464,7 +471,7 @@ components:
             example: JOBID82437
         vehicle_id:
           type: string
-          example: '["VEH23984","vehicle_1","vehicle_2","vehicle_3","vehicle_4","vehicle_5"]'
+          example: VEH23984
         shift_index:
           type: number
           example: 23
