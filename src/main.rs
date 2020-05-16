@@ -2,15 +2,7 @@
 #[macro_use]
 extern crate cached;
 
-use std::borrow::BorrowMut;
-use std::fs::File;
-use std::sync::{Arc, Mutex};
-
-use cached::SizedCache;
-use csv::Reader;
-use lru::LruCache;
 use warp::Filter;
-use tokio::sync::mpsc::channel;
 use std::convert::Infallible;
 
 mod request;

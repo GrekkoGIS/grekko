@@ -42,7 +42,7 @@ pub fn search_coordinates(query: &str) -> String {
                 .iter()
                 .any(|field| field == query),
         )
-        .expect(format!("Unable to find {}", query).as_str())
+        .unwrap_or_else(|| panic!("Unable to find {}", query))
         .expect("Issue unwrapping find");
     format!("{};{}", res.get(lat_index).unwrap().to_owned(), res.get(lon_index).unwrap().to_owned())
 }
@@ -57,7 +57,7 @@ pub fn search_postcode(lat_lon: Vec<f64>) -> String {
                 .iter()
                 .any(|field| field == lat_lon.first().unwrap().to_string()),
         )
-        .expect(format!("Unable to find {:?}", lat_lon).as_str())
+        .unwrap_or_else(|| panic!("Unable to find {:?}", lat_lon))
         .expect("Issue unwrapping find");
     format!("{}", res.get(postcode_index).unwrap().to_owned())
 }
