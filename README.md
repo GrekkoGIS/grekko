@@ -5,18 +5,21 @@ A general purpose geoprocessing api that aspires to be safe, full featured and f
 
 Features:
 
-## Geocoding
+## Geocoding(2nd priority)
+TODO add depth
+UK only, happy to update postcodes
+
+## Vehicle Routing & problem solving(1st priority)
 TODO add depth
 
-## Vehicle Routing & problem solving
-TODO add depth
-
-## Simple geo computations
+## Simple geo computations(3rd priority)
 TODO add depth
 Haversine
 Euclidean
 
-Brain dump of stuff to add:
+Brain dump of otherwise stuff to add:
 gRPC & REST
 caching
 async workflow
+
+Add creds to libraries, data stuff
