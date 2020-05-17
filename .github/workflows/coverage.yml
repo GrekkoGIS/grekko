@@ -29,8 +29,8 @@ jobs:
           config: .config/grcov.yml
       - uses: codecov/codecov-action@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          file: ${{ steps.coverage.outputs.report }} # optional
-          flags: unittests # optional
-          name: codecov-umbrella # optional
-          fail_ci_if_error: true # optional (default = false)
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ${{ steps.coverage.outputs.report }}
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
