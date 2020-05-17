@@ -11,10 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Cache cargo bin
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-deps
+      - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          override: true
       - name: Run cargo bloat
         uses: orf/cargo-bloat-action@v1
         with:
