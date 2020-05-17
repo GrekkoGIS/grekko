@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use csv::{ByteRecord, Reader, StringRecord};
+use csv::{ByteRecord, Reader};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
