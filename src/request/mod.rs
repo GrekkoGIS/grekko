@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
-use vrp_pragmatic::format::{Location, problem};
-use vrp_pragmatic::format::problem::{JobPlace, JobTask, Profile, VehiclePlace, VehicleShift, VehicleType, VehicleCosts};
 use vrp_pragmatic::format::problem::Fleet as ProblemFleet;
 use vrp_pragmatic::format::problem::Job as ProblemJob;
 use vrp_pragmatic::format::problem::Plan as ProblemPlan;
+use vrp_pragmatic::format::problem::{
+    JobPlace, JobTask, Profile, VehicleCosts, VehiclePlace, VehicleShift, VehicleType,
+};
+use vrp_pragmatic::format::{problem, Location};
 
 // imports both the trait and the derive macro
 
@@ -148,7 +150,6 @@ impl DetailedRequest {
     }
 }
 
-
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SimpleTrip {
     pub coordinate_vehicles: Vec<String>,
@@ -158,7 +159,9 @@ pub struct SimpleTrip {
 impl SimpleTrip {
     pub fn convert_to_internal_problem(self) -> problem::Problem {
         let mut counter: i32 = 0;
-        let jobs = self.coordinate_jobs.iter()
+        let jobs = self
+            .coordinate_jobs
+            .iter()
             .map(|job| {
                 counter += 1;
                 ProblemJob {
@@ -167,67 +170,70 @@ impl SimpleTrip {
                     pickups: None,
                     deliveries: None,
                     replacements: None,
-                    services: Some(vec![
-                        JobTask {
-                            places: vec![
-                                JobPlace {
-                                    // TODO: convert to long and lat
-                                    location: Location { lat: 0.0, lng: 0.0 },
-                                    // TODO: add constants to this duration
-                                    // TODO: parameterise duration for the simple type as an optional query parameter
-                                    duration: 120.0 * 60.0,
-                                    times: None,
-                                }
-                            ],
-                            demand: None,
-                            tag: Some(String::from("Simple 120 minute task")),
-                        }
-                    ]),
+                    services: Some(vec![JobTask {
+                        places: vec![JobPlace {
+                            // TODO: convert to long and lat
+                            location: Location { lat: 0.0, lng: 0.0 },
+                            // TODO: add constants to this duration
+                            // TODO: parameterise duration for the simple type as an optional query parameter
+                            duration: 120.0 * 60.0,
+                            times: None,
+                        }],
+                        demand: None,
+                        tag: Some(String::from("Simple 120 minute task")),
+                    }]),
                     priority: None,
                     skills: None,
                 }
-            }).collect();
+            })
+            .collect();
         let mut counter: i32 = 0;
-        let vehicles = self.coordinate_vehicles.iter()
+        let vehicles = self
+            .coordinate_vehicles
+            .iter()
             .map(|vehicle| {
                 counter += 1;
                 VehicleType {
                     type_id: counter.to_string(),
                     // type_id: "car".to_string(),
-                    vehicle_ids: vec![
-                        counter.to_string()
-                    ],
+                    vehicle_ids: vec![counter.to_string()],
                     profile: "car".to_string(),
                     costs: VehicleCosts {
                         fixed: None,
                         distance: 0.0,
-                        time: 0.0
+                        time: 0.0,
                     },
-                    shifts: vec![
-                        VehicleShift {
-                            // TODO: convert to long and lat
-                            start: VehiclePlace { time: chrono::Utc::now().to_rfc3339(), location: Location { lat: 0.0, lng: 0.0 } },
-                            end: None,
-                            breaks: None,
-                            reloads: None
-                        }
-                    ],
-                    capacity: vec![
-                        5
-                    ],
+                    shifts: vec![VehicleShift {
+                        // TODO: convert to long and lat
+                        start: VehiclePlace {
+                            time: chrono::Utc::now().to_rfc3339(),
+                            location: Location { lat: 0.0, lng: 0.0 },
+                        },
+                        end: None,
+                        breaks: None,
+                        reloads: None,
+                    }],
+                    capacity: vec![5],
                     skills: None,
-                    limits: None
+                    limits: None,
                 }
-            }).collect();
+            })
+            .collect();
         let profile = Profile {
             name: "car".to_string(),
             profile_type: "car".to_string(),
-            speed: None
+            speed: None,
         };
 
         problem::Problem {
-            plan: ProblemPlan { jobs, relations: None },
-            fleet: ProblemFleet { vehicles, profiles: vec![profile] },
+            plan: ProblemPlan {
+                jobs,
+                relations: None,
+            },
+            fleet: ProblemFleet {
+                vehicles,
+                profiles: vec![profile],
+            },
             objectives: None,
             config: None,
         }

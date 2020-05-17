@@ -1,11 +1,10 @@
 use std::io::{BufReader, BufWriter};
 
+use std::sync::Arc;
 use vrp_core::models::{Problem as CoreProblem, Solution as CoreSolution};
+use vrp_core::solver::Builder;
 use vrp_pragmatic::format::problem::{deserialize_problem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
-use vrp_core::solver::Builder;
-use std::sync::Arc;
-
 
 pub fn get_pragmatic_problem(problem_text: &str) -> Problem {
     deserialize_problem(BufReader::new(problem_text.as_bytes())).unwrap()
@@ -37,7 +36,7 @@ pub fn create_builder(problem: &Arc<CoreProblem>) -> (CoreSolution, f64) {
 mod tests {
     use std::sync::Arc;
 
-    use crate::solver::{get_pragmatic_problem, get_pragmatic_solution, create_builder};
+    use crate::solver::{create_builder, get_pragmatic_problem, get_pragmatic_solution};
     use vrp_core::solver::Builder;
     use vrp_pragmatic::checker::CheckerContext;
     use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
