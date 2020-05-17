@@ -19,8 +19,9 @@ pub async fn start_server(addr: SocketAddr) {
 
     let simple_trip =
         warp::path!("routing" / "solver" / "simple")
-            .and(warp::query::query::<Vec<String>>())
-            .and(warp::query::query::<Vec<String>>())
+            .and(warp::post())
+            .and(warp::body::content_length_limit(1024 * 16))
+            .and(warp::body::json::<SimpleTrip>())
             .and_then(simple_trip);
 
     let simple_trip_async =
@@ -67,16 +68,13 @@ pub struct SimpleTrip {
     pub coordinate_jobs: Vec<String>
 }
 
-pub async fn simple_trip(coordinate_vehicles: Vec<String>, coordinate_jobs: Vec<String>) -> Result<impl warp::Reply, Infallible> {
-    println!("{:?}", coordinate_vehicles);
-    println!("{:?}", coordinate_jobs);
-    // let result = geocoding::search_postcode(vec![lat, lon]);
-    Ok("result")
+pub async fn simple_trip(trip: SimpleTrip) -> Result<impl warp::Reply, Infallible> {
+    Ok(warp::reply::json(&trip))
 }
 
 pub async fn simple_trip_async(trip: SimpleTrip) -> Result<impl warp::Reply, Infallible> {
     tokio::task::spawn(async {
-        println!("Hey")
+        println!("Hey, i'm gonna be another task")
     });
     // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")
