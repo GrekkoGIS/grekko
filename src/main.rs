@@ -7,7 +7,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 pub mod geocoding;
 pub mod request;
-mod vrp;
+pub mod solver;
 
 #[tokio::main]
 async fn main() {
