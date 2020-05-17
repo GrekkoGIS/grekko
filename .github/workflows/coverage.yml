@@ -8,14 +8,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: nightly
+#          override: true
+      - name: "Use the latest Rust nightly with rustfmt"
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          profile: minimal
+          components: rustfmt
           override: true
       - uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
-          override: true
           command: fmt
           args: --all -- --check
 
