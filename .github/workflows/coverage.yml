@@ -3,34 +3,62 @@ name: Code Coverage
 on: [push]
 
 jobs:
-  lint:
+
+  fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  clippy_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+          override: true
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
+
+  test-nightly-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache cargo bin
+          uses: actions/cache@v1
+          with:
+            path: ~/.cargo/bin
+            key: ${{ runner.os }}-cargo-audit-v0.11.2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: build
-        env:
-          CARGO_INCREMENTAL: '0'
-          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+          command: clean
       - uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all-features --no-fail-fast
         env:
-          CARGO_INCREMENTAL: '0'
-          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+          CARGO_INCREMENTAL: "0"
+          RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads"
       - uses: actions-rs/grcov@v0.1
-        with:
-          config: .config/grcov.yml
-      - uses: codecov/codecov-action@v1
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ${{ steps.coverage.outputs.report }}
-          flags: unittests
-          name: codecov-umbrella
+          yml: ./codecov.yml
           fail_ci_if_error: true
