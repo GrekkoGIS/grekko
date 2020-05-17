@@ -7,15 +7,15 @@ A general purpose geoprocessing api that aspires to be safe, full featured and f
 
 Features:
 
+## Vehicle Routing & problem solving(1st priority)
+
+TODO add depth
+
 ## Geocoding(2nd priority)
 
 TODO add depth
 
 UK only, happy to update postcodes
-
-## Vehicle Routing & problem solving(1st priority)
-
-TODO add depth
 
 ## Simple geo computations(3rd priority)
 
