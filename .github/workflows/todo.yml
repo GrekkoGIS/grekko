@@ -11,13 +11,5 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@master"
-      - name: "TODO to Issue"
-        uses: "alstr/todo-to-issue-action@v1.1.1-beta"
-        with:
-#          INPUT_REPO: ${{ github.repository }}
-#          INPUT_BEFORE: ${{ github.event.before }}
-#          INPUT_SHA: ${{ github.sha }}
-#          ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LABEL: "// TODO"
-          COMMENT_MARKER: "//"
-        id: "todo"
+      - name: todo-actions
+        uses: dtinth/todo-actions@v0.2.0
