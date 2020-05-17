@@ -2,6 +2,8 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 use warp::Filter;
 use vrp_pragmatic::format::problem::Problem;
+use serde::{Deserialize, Serialize};
+
 
 mod geocoding;
 mod request;
@@ -17,9 +19,16 @@ pub async fn start_server(addr: SocketAddr) {
 
     let simple_trip =
         warp::path!("routing" / "solver" / "simple")
-            .and(warp::query::query())
-            .and(warp::query::query())
+            .and(warp::query::query::<Vec<String>>())
+            .and(warp::query::query::<Vec<String>>())
             .and_then(simple_trip);
+
+    let simple_trip_async =
+        warp::path!("routing" / "solver" / "simple" / "async")
+            .and(warp::post())
+            .and(warp::body::content_length_limit(1024 * 16))
+            .and(warp::body::json::<SimpleTrip>())
+            .and_then(simple_trip_async);
 
     let trip =
         warp::path!("routing" / "solver")
@@ -30,6 +39,7 @@ pub async fn start_server(addr: SocketAddr) {
 
     let routes = trip
         .or(simple_trip)
+        .or(simple_trip_async)
         .or(forward_geocoding)
         .or(reverse_geocoding);
 
@@ -51,9 +61,23 @@ pub async fn trip(request: Problem) -> Result<impl warp::Reply, Infallible> {
     Ok("result")
 }
 
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SimpleTrip {
+    pub coordinate_vehicles: Vec<String>,
+    pub coordinate_jobs: Vec<String>
+}
+
 pub async fn simple_trip(coordinate_vehicles: Vec<String>, coordinate_jobs: Vec<String>) -> Result<impl warp::Reply, Infallible> {
     println!("{:?}", coordinate_vehicles);
     println!("{:?}", coordinate_jobs);
+    // let result = geocoding::search_postcode(vec![lat, lon]);
+    Ok("result")
+}
+
+pub async fn simple_trip_async(trip: SimpleTrip) -> Result<impl warp::Reply, Infallible> {
+    tokio::task::spawn(async {
+        println!("Hey")
+    });
     // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")
 }
