@@ -3,11 +3,11 @@
 extern crate cached;
 
 use grekko::start_server;
-use std::net::{Ipv4Addr, IpAddr, SocketAddr};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
+pub mod geocoding;
 pub mod request;
 mod vrp;
-pub mod geocoding;
 
 // cached_key! {
 //     CACHE: SizedCache<String, Reader<File>> = SizedCache::with_size(1);

@@ -24,10 +24,10 @@ fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Sol
 mod tests {
     use std::sync::Arc;
 
+    use crate::vrp::{get_pragmatic_problem, get_pragmatic_solution};
     use vrp_core::solver::Builder;
     use vrp_pragmatic::checker::CheckerContext;
     use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
-    use crate::vrp::{get_pragmatic_solution, get_pragmatic_problem};
     use vrp_pragmatic::format::solution::Solution;
 
     #[test]
@@ -1064,7 +1064,8 @@ mod tests {
             .solve()
             .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
 
-        let solution: Solution = get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
+        let solution: Solution =
+            get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
         let problem: Problem = get_pragmatic_problem(problem_text);
 
         // TODO use matrices
