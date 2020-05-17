@@ -1074,7 +1074,7 @@ mod tests {
             get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
         let problem: Problem = get_pragmatic_problem(problem_text);
 
-        // TODO use matrices
+        // TODO: use matrices potentially
 
         let context = CheckerContext::new(problem, None, solution);
 

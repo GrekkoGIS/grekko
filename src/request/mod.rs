@@ -94,9 +94,9 @@ impl DetailedRequest {
             .iter()
             .map(|vehicle| {
                 vrp_pragmatic::format::problem::VehicleType {
-                    type_id: "vehicle".to_owned(), //TODO understand this
+                    type_id: "vehicle".to_owned(), //TODO: understand type id's in Vehicle Type
                     vehicle_ids: (*vehicle.vehicle_ids).to_owned(),
-                    profile: "car".to_string(), //TODO enum this
+                    profile: "car".to_string(), //TODO: enumerate the profile for the simple problem
                     costs: vrp_pragmatic::format::problem::VehicleCosts {
                         fixed: Option::from(vehicle.costs.fixed),
                         distance: vehicle.costs.distance,
@@ -108,29 +108,30 @@ impl DetailedRequest {
                         .map(|shift| VehicleShift {
                             start: VehiclePlace {
                                 time: shift.start.time.to_string(),
+                                //TODO: utilise geocoding to get coordinates
                                 location: Location { lat: 0.0, lng: 0.0 },
-                            }, //TODO convert these
+                            },
                             end: Option::from(VehiclePlace {
                                 time: shift.end.time.to_string(),
                                 location: Location { lat: 0.0, lng: 0.0 },
                             }), //optional
-                            breaks: None, //TODO expose breaks
+                            breaks: None, //TODO: expose breaks
                             reloads: None,
                         })
                         .collect(),
                     capacity: vec![vehicle.capacity],
-                    skills: None, //TODO expose some skills
-                    limits: None, //TODO more on all of these
+                    skills: None, //TODO: expose some skills
+                    limits: None, //TODO: more on all of these
                 }
             })
             .collect();
 
-        //TODO explain single profile
+        //TODO: explain single profile and provide valid inputs
         let profile = Profile {
             name: "car".to_string(),
             profile_type: "car".to_string(),
             speed: None,
-        }; //TODO enum this
+        }; //TODO: enum this
 
         vrp_pragmatic::format::problem::Problem {
             plan: vrp_pragmatic::format::problem::Plan {
@@ -162,7 +163,7 @@ impl SimpleTrip {
                 counter += 1;
                 ProblemJob {
                     id: counter.to_string(),
-                    // TODO potentially switch on the type of job to decide whether its a pickup, delivery or service
+                    // TODO: potentially switch on the type of job to decide whether its a pickup, delivery or service
                     pickups: None,
                     deliveries: None,
                     replacements: None,
@@ -170,10 +171,10 @@ impl SimpleTrip {
                         JobTask {
                             places: vec![
                                 JobPlace {
-                                    // TODO convert to long and lat
+                                    // TODO: convert to long and lat
                                     location: Location { lat: 0.0, lng: 0.0 },
-                                    // TODO add constants to this duration
-                                    // TODO parameterise duration for the simple type as an optional query parameter
+                                    // TODO: add constants to this duration
+                                    // TODO: parameterise duration for the simple type as an optional query parameter
                                     duration: 120.0 * 60.0,
                                     times: None,
                                 }
@@ -204,7 +205,7 @@ impl SimpleTrip {
                     },
                     shifts: vec![
                         VehicleShift {
-                            // TODO convert to long and lat
+                            // TODO: convert to long and lat
                             start: VehiclePlace { time: chrono::Utc::now().to_rfc3339(), location: Location { lat: 0.0, lng: 0.0 } },
                             end: None,
                             breaks: None,
