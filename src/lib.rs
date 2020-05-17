@@ -51,7 +51,9 @@ pub async fn trip(request: Problem) -> Result<impl warp::Reply, Infallible> {
     Ok("result")
 }
 
-pub async fn simple_trip(coordinateVehicles: Vec<String>, coordinateJobs: Vec<String>) -> Result<impl warp::Reply, Infallible> {
+pub async fn simple_trip(coordinate_vehicles: Vec<String>, coordinate_jobs: Vec<String>) -> Result<impl warp::Reply, Infallible> {
+    println!("{:?}", coordinate_vehicles);
+    println!("{:?}", coordinate_jobs);
     // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")
 }

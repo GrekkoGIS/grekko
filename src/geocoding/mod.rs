@@ -44,6 +44,7 @@ pub fn search_coordinates(query: &str) -> String {
                 .iter()
                 .any(|field| field == query
                     .replace(" ", "")
+                    .replace("-", " ")
                     .as_bytes())
         })
         .unwrap_or_else(|| panic!("Unable to find coordinates for {}", query))
