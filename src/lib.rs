@@ -17,20 +17,16 @@ pub async fn start_server(addr: SocketAddr) {
 
     let simple_trip =
         warp::path!("routing" / "solver" / "simple")
-            .and(warp::body::content_length_limit(1024 * 16))
-            .and(warp::body::json())
+            .and(warp::query::query())
+            .and(warp::query::query())
             .and_then(simple_trip);
 
-
-    let trip = warp::post()
-        .and(warp::path("detailed"))
-        // .and(warp::path::param::<u32>())
-        // TODO fix compression .with(warp::compression::gzip())
-        .and(warp::body::content_length_limit(1024 * 16))
-        .and(warp::body::json())
-        .map(|request: request::DetailedRequest| {
-            warp::reply::json(&request.convert_to_internal_problem())
-        });
+    let trip =
+        warp::path!("routing" / "solver")
+            // TODO fix compression .with(warp::compression::gzip())
+            .and(warp::body::content_length_limit(1024 * 16))
+            .and(warp::body::json())
+            .and_then(trip);
 
     let routes = trip
         .or(simple_trip)
@@ -50,7 +46,12 @@ pub async fn receive_and_search_postcode(lat: f64, lon: f64) -> Result<impl warp
     Ok(result)
 }
 
-pub async fn simple_trip(request: Problem) -> Result<impl warp::Reply, Infallible> {
+pub async fn trip(request: Problem) -> Result<impl warp::Reply, Infallible> {
+    // let result = geocoding::search_postcode(vec![lat, lon]);
+    Ok("result")
+}
+
+pub async fn simple_trip(coordinateVehicles: Vec<String>, coordinateJobs: Vec<String>) -> Result<impl warp::Reply, Infallible> {
     // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")
 }

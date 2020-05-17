@@ -42,7 +42,9 @@ pub fn search_coordinates(query: &str) -> String {
                 .as_ref()
                 .expect("Couldn't serialise record to a byte record")
                 .iter()
-                .any(|field| field == query.as_bytes())
+                .any(|field| field == query
+                    .replace(" ", "")
+                    .as_bytes())
         })
         .unwrap_or_else(|| panic!("Unable to find coordinates for {}", query))
         .expect("Find result could not be unwrapped!");
