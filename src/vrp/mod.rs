@@ -4,6 +4,7 @@ use vrp_core::models::{Problem as CoreProblem, Solution as CoreSolution};
 use vrp_pragmatic::format::problem::{deserialize_problem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 
+
 fn get_pragmatic_problem(problem_text: &str) -> Problem {
     deserialize_problem(BufReader::new(problem_text.as_bytes())).unwrap()
 }
