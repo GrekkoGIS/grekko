@@ -37,9 +37,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: Cache cargo bin
         uses: actions/cache@v1
-          with:
-            path: ~/.cargo/bin
-            key: ${{ runner.os }}-cargo-deps
+        with:
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-deps
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
