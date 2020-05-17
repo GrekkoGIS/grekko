@@ -12,10 +12,10 @@ jobs:
       - name: "TODO to Issue"
         uses: "alstr/todo-to-issue-action@v1.1.1-beta"
         with:
-          REPO: ${{ github.repository }}
-          BEFORE: ${{ github.event.before }}
-          SHA: ${{ github.sha }}
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: '${{ github.repository }}'
+          BEFORE: '${{ github.event.before }}'
+          SHA: '${{ github.sha }}'
+          TOKEN: '${{ secrets.GITHUB_TOKEN }}'
           LABEL: "// TODO"
           COMMENT_MARKER: "//"
         id: "todo"
