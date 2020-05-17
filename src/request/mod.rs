@@ -162,6 +162,7 @@ impl SimpleTrip {
                 counter += 1;
                 ProblemJob {
                     id: counter.to_string(),
+                    // TODO potentially switch on the type of job to decide whether its a pickup, delivery or service
                     pickups: None,
                     deliveries: None,
                     replacements: None,
@@ -171,6 +172,8 @@ impl SimpleTrip {
                                 JobPlace {
                                     // TODO convert to long and lat
                                     location: Location { lat: 0.0, lng: 0.0 },
+                                    // TODO add constants to this duration
+                                    // TODO parameterise duration for the simple type as an optional query parameter
                                     duration: 120.0 * 60.0,
                                     times: None,
                                 }
