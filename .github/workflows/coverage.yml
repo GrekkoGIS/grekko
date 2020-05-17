@@ -14,6 +14,8 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
+          toolchain: nightly
+          override: true
           command: fmt
           args: --all -- --check
 
