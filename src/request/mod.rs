@@ -171,7 +171,7 @@ impl SimpleTrip {
                                 JobPlace {
                                     // TODO convert to long and lat
                                     location: Location { lat: 0.0, lng: 0.0 },
-                                    duration: 120.0,
+                                    duration: 120.0 * 60.0,
                                     times: None,
                                 }
                             ],
