@@ -1,17 +1,17 @@
-use warp::Filter;
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use warp::Filter;
 
+mod geocoding;
 mod request;
 mod vrp;
-mod geocoding;
 
 pub async fn start_server(addr: SocketAddr) {
-    let forward_geocoding = warp::path!("geocoding" / "forward" / String)
-        .and_then(receive_and_search_coordinates);
+    let forward_geocoding =
+        warp::path!("geocoding" / "forward" / String).and_then(receive_and_search_coordinates);
 
-    let reverse_geocoding = warp::path!("geocoding" / "reverse" / f64 / f64)
-        .and_then(receive_and_search_postcode);
+    let reverse_geocoding =
+        warp::path!("geocoding" / "reverse" / f64 / f64).and_then(receive_and_search_postcode);
 
     let trip = warp::post()
         .and(warp::path("detailed"))
@@ -23,12 +23,9 @@ pub async fn start_server(addr: SocketAddr) {
             warp::reply::json(&request.convert_to_internal_problem())
         });
 
-    let routes = trip
-        .or(forward_geocoding).or(reverse_geocoding);
+    let routes = trip.or(forward_geocoding).or(reverse_geocoding);
 
-    warp::serve(routes)
-        .run(addr)
-        .await;
+    warp::serve(routes).run(addr).await;
 }
 
 async fn receive_and_search_coordinates(postcode: String) -> Result<impl warp::Reply, Infallible> {

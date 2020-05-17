@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
+use vrp_pragmatic::format::problem::{Profile, VehiclePlace, VehicleShift};
 use vrp_pragmatic::format::Location;
-use vrp_pragmatic::format::problem::{VehiclePlace, VehicleShift, Profile};
 
 // imports both the trait and the derive macro
 
@@ -85,7 +85,9 @@ pub struct End {
 
 impl DetailedRequest {
     pub fn convert_to_internal_problem(self) -> vrp_pragmatic::format::problem::Problem {
-        let fleet = self.fleet.vehicles
+        let fleet = self
+            .fleet
+            .vehicles
             .iter()
             .map(|vehicle| {
                 vrp_pragmatic::format::problem::VehicleType {
@@ -97,30 +99,45 @@ impl DetailedRequest {
                         distance: vehicle.costs.distance,
                         time: vehicle.costs.time,
                     },
-                    shifts: vehicle.shifts
+                    shifts: vehicle
+                        .shifts
                         .iter()
                         .map(|shift| VehicleShift {
-                            start: VehiclePlace { time: shift.start.time.to_string(), location: Location { lat: 0.0, lng: 0.0 } }, //TODO convert these
-                            end: Option::from(VehiclePlace { time: shift.end.time.to_string(), location: Location { lat: 0.0, lng: 0.0 } }), //optional
+                            start: VehiclePlace {
+                                time: shift.start.time.to_string(),
+                                location: Location { lat: 0.0, lng: 0.0 },
+                            }, //TODO convert these
+                            end: Option::from(VehiclePlace {
+                                time: shift.end.time.to_string(),
+                                location: Location { lat: 0.0, lng: 0.0 },
+                            }), //optional
                             breaks: None, //TODO expose breaks
                             reloads: None,
-                        }).collect(),
+                        })
+                        .collect(),
                     capacity: vec![vehicle.capacity],
                     skills: None, //TODO expose some skills
                     limits: None, //TODO more on all of these
                 }
-            }).collect();
+            })
+            .collect();
 
         //TODO explain single profile
         let profile = Profile {
             name: "car".to_string(),
             profile_type: "car".to_string(),
-            speed: None
+            speed: None,
         }; //TODO enum this
 
         vrp_pragmatic::format::problem::Problem {
-            plan: vrp_pragmatic::format::problem::Plan { jobs: vec![], relations: None },
-            fleet: vrp_pragmatic::format::problem::Fleet { vehicles: fleet, profiles: vec![profile] },
+            plan: vrp_pragmatic::format::problem::Plan {
+                jobs: vec![],
+                relations: None,
+            },
+            fleet: vrp_pragmatic::format::problem::Fleet {
+                vehicles: fleet,
+                profiles: vec![profile],
+            },
             objectives: None,
             config: None,
         }
@@ -182,7 +199,8 @@ mod tests {
     ]
   }
 }"#;
-        let obj: DetailedRequest = serde_json::from_str(request).expect("Unable to serialise request");
+        let obj: DetailedRequest =
+            serde_json::from_str(request).expect("Unable to serialise request");
         assert_eq!(obj.fleet.vehicles[0].costs.fixed, 22.0);
 
         let problem = obj.convert_to_internal_problem();
