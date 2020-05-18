@@ -23,7 +23,7 @@ pub enum GeocodingKind {
 // let (mut sender, mut receiver) = channel(100);
 // sender.send(cache.get(&"postcodes").unwrap());
 
-// TODO [$5ec2f7a66a49f800080a1f14]: memoize the cached keys and utilise channels to get it working
+// TODO [#17]: memoize the cached keys and utilise channels to get it working
 // cached!{
 //     POSTCODES;
 //     fn build_geocoding_csv() -> Reader<File> = {

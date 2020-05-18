@@ -166,16 +166,16 @@ impl SimpleTrip {
                 counter += 1;
                 ProblemJob {
                     id: counter.to_string(),
-                    // TODO [$5ec2f7a66a49f800080a1f18]: potentially switch on the type of job to decide whether its a pickup, delivery or service
+                    // TODO [#21]: potentially switch on the type of job to decide whether its a pickup, delivery or service
                     pickups: None,
                     deliveries: None,
                     replacements: None,
                     services: Some(vec![JobTask {
                         places: vec![JobPlace {
-                            // TODO [$5ec2f7a66a49f800080a1f19]: convert to long and lat
+                            // TODO [#22]: convert to long and lat
                             location: Location { lat: 0.0, lng: 0.0 },
-                            // TODO [$5ec2f7a66a49f800080a1f1a]: add constants to this duration
-                            // TODO [$5ec2f7a66a49f800080a1f1b]: parameterise duration for the simple type as an optional query parameter
+                            // TODO [#23]: add constants to this duration
+                            // TODO [#24]: parameterise duration for the simple type as an optional query parameter
                             duration: 120.0 * 60.0,
                             times: None,
                         }],
@@ -204,7 +204,7 @@ impl SimpleTrip {
                         time: 0.0,
                     },
                     shifts: vec![VehicleShift {
-                        // TODO [$5ec2f7a66a49f800080a1f1c]: convert to long and lat
+                        // TODO [#25]: convert to long and lat
                         start: VehiclePlace {
                             time: chrono::Utc::now().to_rfc3339(),
                             location: Location { lat: 0.0, lng: 0.0 },

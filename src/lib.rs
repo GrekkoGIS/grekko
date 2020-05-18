@@ -12,7 +12,7 @@ mod request;
 mod solver;
 
 pub async fn start_server(addr: SocketAddr) {
-    // TODO [$5ec2f7a66a49f800080a1f15]: potentially move path parameterized geocoding to query
+    // TODO [#18]: potentially move path parameterized geocoding to query
     let forward_geocoding =
         warp::path!("geocoding" / "forward" / String).and_then(receive_and_search_coordinates);
 
@@ -32,7 +32,7 @@ pub async fn start_server(addr: SocketAddr) {
         .and_then(simple_trip_async);
 
     let trip = warp::path!("routing" / "solver")
-        // TODO [$5ec2f7a66a49f800080a1f16]: fix compression .with(warp::compression::gzip())
+        // TODO [#19]: fix compression .with(warp::compression::gzip())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json())
         .and_then(trip);
@@ -80,7 +80,7 @@ pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, 
     let solution: Solution =
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
 
-    // TODO [$5ec2f7a66a49f800080a1f17]: this context builder is silly, refactor it
+    // TODO [#20]: this context builder is silly, refactor it
     let problem: Problem = trip.convert_to_internal_problem();
     let context = CheckerContext::new(problem, None, solution);
 
