@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_search_coordinates() {
-        let coordinates = search_coordinates("AB1 0AJ");
+        let coordinates = search_coordinates("AB1-0AJ");
         assert_eq!(coordinates, "57.099011;-2.252854")
     }
 }
