@@ -5,19 +5,21 @@
 ### Grekko
 A general purpose geoprocessing api that aspires to be safe, full featured and fun to use!
 
+No long term roadmap yet, just some features in my head, of course.
+
 Features:
 
-## Vehicle Routing & problem solving(1st priority)
+## Vehicle Routing & problem solving
 
 TODO: add depth to this description
 
-## Geocoding(2nd priority)
+## Geocoding
 
 TODO: add depth to this description
 
 UK only, happy to update postcodes
 
-## Simple geo computations(3rd priority)
+## Simple geo computations
 
 TODO: add depth to this description
 
