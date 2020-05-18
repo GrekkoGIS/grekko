@@ -23,7 +23,7 @@ pub enum GeocodingKind {
 // let (mut sender, mut receiver) = channel(100);
 // sender.send(cache.get(&"postcodes").unwrap());
 
-// TODO this memoisation
+// TODO: memoize the cached keys and utilise channels to get it working
 // cached!{
 //     POSTCODES;
 //     fn build_geocoding_csv() -> Reader<File> = {
@@ -42,7 +42,7 @@ pub fn search_coordinates(query: &str) -> String {
                 .as_ref()
                 .expect("Couldn't serialise record to a byte record")
                 .iter()
-                .any(|field| field == query.as_bytes())
+                .any(|field| field == query.replace(" ", "").replace("-", " ").as_bytes())
         })
         .unwrap_or_else(|| panic!("Unable to find coordinates for {}", query))
         .expect("Find result could not be unwrapped!");
@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_search_coordinates() {
-        let coordinates = search_coordinates("AB1 0AJ");
+        let coordinates = search_coordinates("AB1-0AJ");
         assert_eq!(coordinates, "57.099011;-2.252854")
     }
 }

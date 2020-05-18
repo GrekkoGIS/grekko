@@ -7,16 +7,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 pub mod geocoding;
 pub mod request;
-mod vrp;
-
-// cached_key! {
-//     CACHE: SizedCache<String, Reader<File>> = SizedCache::with_size(1);
-//     Key = "Cache";
-//     fn build_geocoding_csv() -> Reader<File> = {
-//         let result = csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv");
-//         result.records().collect()
-//     }
-// }
+pub mod solver;
 
 #[tokio::main]
 async fn main() {

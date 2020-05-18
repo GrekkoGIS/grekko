@@ -9,17 +9,17 @@ Features:
 
 ## Vehicle Routing & problem solving(1st priority)
 
-TODO add depth
+TODO: add depth to this description
 
 ## Geocoding(2nd priority)
 
-TODO add depth
+TODO: add depth to this description
 
 UK only, happy to update postcodes
 
 ## Simple geo computations(3rd priority)
 
-TODO add depth
+TODO: add depth to this description
 
 - Haversine
 - Euclidean
