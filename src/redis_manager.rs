@@ -13,7 +13,7 @@ use redis::{AsyncCommands, Client, Commands, RedisResult};
 // }
 
 fn get_redis_client() -> RedisResult<Client> {
-    redis::Client::open("cache_manager://127.0.0.1/")
+    redis::Client::open("redis://127.0.0.1/")
 }
 
 pub async fn get(query: &str) -> Option<String> {
@@ -25,9 +25,8 @@ pub async fn get(query: &str) -> Option<String> {
 
 pub async fn bulk_set(reader: &mut Reader<File>) {
     let records = reader.records();
-    let client: Client = get_redis_client().ok().unwrap();
+    let client: Client = get_redis_client().unwrap();
     let mut con = client.get_async_connection().await.unwrap();
-
 
     let postcode_index = 0;
     let lat_index = 1;
@@ -45,4 +44,5 @@ pub async fn bulk_set(reader: &mut Reader<File>) {
     );
 
     let result: RedisResult<String> = pipeline.query_async(&mut con).await;
+    println!("{}", result.unwrap());
 }

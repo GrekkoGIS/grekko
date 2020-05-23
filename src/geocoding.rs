@@ -67,11 +67,13 @@ pub fn search_coordinates(query: &str) -> String {
     )
 }
 
-pub fn bootstrap_postcode_cache() -> String {
+pub async fn bootstrap_postcode_cache() -> String {
+
+    println!("Bootstrapping postcode cache");
 
     let mut reader = build_geocoding_csv();
 
-    redis_manager::bulk_set(&mut reader);
+    redis_manager::bulk_set(&mut reader).await;
 
     String::new()
 }
@@ -99,7 +101,7 @@ fn build_geocoding_csv() -> Reader<File> {
 
 #[cfg(test)]
 mod tests {
-    use crate::geocoding::{search_coordinates, search_postcode};
+    use crate::geocoding::{search_coordinates, search_postcode, bootstrap_postcode_cache};
 
     #[test]
     fn test_search_postcode() {
@@ -112,5 +114,10 @@ mod tests {
     fn test_search_coordinates() {
         let coordinates = search_coordinates("AB1-0AJ");
         assert_eq!(coordinates, "57.099011;-2.252854")
+    }
+
+    #[test]
+    fn test_bootstrap_postcode_cache() {
+        bootstrap_postcode_cache();
     }
 }

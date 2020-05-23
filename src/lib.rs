@@ -13,6 +13,10 @@ mod solver;
 mod redis_manager;
 
 pub async fn start_server(addr: SocketAddr) {
+    tokio::task::spawn(async {
+        geocoding::bootstrap_postcode_cache().await;
+    });
+
     // TODO [#18]: potentially move path parameterized geocoding to query
     let forward_geocoding =
         warp::path!("geocoding" / "forward" / String).and_then(receive_and_search_coordinates);
