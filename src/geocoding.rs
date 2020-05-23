@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use csv::{ByteRecord, Reader, StringRecordsIter};
+use csv::{ByteRecord, Reader};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
 use crate::redis_manager;
@@ -67,7 +67,7 @@ pub fn search_coordinates(query: &str) -> String {
     )
 }
 
-pub async fn bootstrap_postcode_cache() -> String {
+pub async fn bootstrap_postcode_cache() {
 
     let postcode_csv_size = 2628568;
 
@@ -82,8 +82,6 @@ pub async fn bootstrap_postcode_cache() -> String {
     } else {
         println!("Postcodes have already been set")
     }
-
-    String::new()
 }
 
 pub fn search_postcode(lat_lon: Vec<f64>) -> String {

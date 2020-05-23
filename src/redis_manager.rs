@@ -1,16 +1,7 @@
 use std::fs::File;
-use std::rc::Rc;
-use std::sync::Arc;
 
-use cached::SizedCache;
-use csv::{Reader, StringRecordIter, StringRecordsIter};
-use redis::{AsyncCommands, Client, Commands, RedisResult};
-
-// cached_key! {
-//     REDIS_CLIENT: SizedCache<String, RedisResult<Client>> = SizedCache::with_size(1);
-//     Key = String::from("redis_client");
-//
-// }
+use csv::{Reader};
+use redis::{AsyncCommands, Client, RedisResult};
 
 fn get_redis_client() -> RedisResult<Client> {
     redis::Client::open("redis://127.0.0.1/")
@@ -59,5 +50,5 @@ pub async fn bulk_set(reader: &mut Reader<File>) {
 
     let result: RedisResult<i32> = pipeline.query_async(&mut con).await;
 
-    println!("Finished bootstrapping {} postcodes", count);
+    println!("Finished bootstrapping {} postcodes, result: {}", count, result.unwrap());
 }
