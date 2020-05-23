@@ -48,6 +48,7 @@ pub async fn start_server(addr: SocketAddr) {
         .or(forward_geocoding)
         .or(reverse_geocoding);
 
+    println!("Server is starting on {}", addr);
     warp::serve(routes).run(addr).await;
 }
 

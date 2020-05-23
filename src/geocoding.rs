@@ -73,7 +73,12 @@ pub async fn bootstrap_postcode_cache() -> String {
 
     let mut reader = build_geocoding_csv();
 
-    redis_manager::bulk_set(&mut reader).await;
+    let count = redis_manager::count("POSTCODE").await;
+    if count != 2628568 {
+        redis_manager::bulk_set(&mut reader).await;
+    } else {
+        println!("Postcodes have already been set")
+    }
 
     String::new()
 }
