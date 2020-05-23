@@ -1,4 +1,5 @@
 #![feature(option_result_contains)]
+#![feature(in_band_lifetimes)]
 #[macro_use]
 extern crate cached;
 
@@ -8,7 +9,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 pub mod geocoding;
 pub mod request;
 pub mod solver;
-pub mod redis;
+pub mod redis_manager;
 
 #[tokio::main]
 async fn main() {

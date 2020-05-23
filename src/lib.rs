@@ -10,6 +10,7 @@ use warp::Filter;
 mod geocoding;
 mod request;
 mod solver;
+mod redis_manager;
 
 pub async fn start_server(addr: SocketAddr) {
     // TODO [#18]: potentially move path parameterized geocoding to query

@@ -1,8 +1,9 @@
 use std::fs::File;
 
-use csv::{ByteRecord, Reader};
+use csv::{ByteRecord, Reader, StringRecordsIter};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
+use crate::redis_manager;
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -38,7 +39,7 @@ pub fn search_location(query: &str) -> Location {
     let coordinates: Vec<&str> = coordinates.split(',').collect();
     Location {
         lat: coordinates[0].parse().unwrap(),
-        lng: coordinates[1].parse().unwrap()
+        lng: coordinates[1].parse().unwrap(),
     }
 }
 
@@ -64,6 +65,15 @@ pub fn search_coordinates(query: &str) -> String {
         std::str::from_utf8(res.get(lon_index).unwrap().to_owned().as_ref())
             .expect("Unable to unwrap longitude")
     )
+}
+
+pub fn bootstrap_postcode_cache() -> String {
+
+    let mut reader = build_geocoding_csv();
+
+    redis_manager::bulk_set(&mut reader);
+
+    String::new()
 }
 
 pub fn search_postcode(lat_lon: Vec<f64>) -> String {
