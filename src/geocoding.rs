@@ -69,12 +69,15 @@ pub fn search_coordinates(query: &str) -> String {
 
 pub async fn bootstrap_postcode_cache() -> String {
 
+    let postcode_csv_size = 2628568;
+
     println!("Bootstrapping postcode cache");
 
     let mut reader = build_geocoding_csv();
 
     let count = redis_manager::count("POSTCODE").await;
-    if count != 2628568 {
+
+    if count != postcode_csv_size {
         redis_manager::bulk_set(&mut reader).await;
     } else {
         println!("Postcodes have already been set")
