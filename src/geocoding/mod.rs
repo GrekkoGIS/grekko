@@ -2,6 +2,7 @@ use std::fs::File;
 
 use csv::{ByteRecord, Reader};
 use serde::Deserialize;
+use vrp_pragmatic::format::Location;
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -31,6 +32,15 @@ pub enum GeocodingKind {
 //         records
 //     }
 // }
+
+pub fn search_location(query: &str) -> Location {
+    let coordinates: String = search_coordinates(query);
+    let coordinates: Vec<&str> = coordinates.split(',').collect();
+    Location {
+        lat: coordinates[0].parse().unwrap(),
+        lng: coordinates[1].parse().unwrap()
+    }
+}
 
 pub fn search_coordinates(query: &str) -> String {
     let lat_index = 1;

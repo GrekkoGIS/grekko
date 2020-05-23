@@ -1,13 +1,14 @@
 use serde::{Deserialize, Serialize};
-use vrp_pragmatic::format::problem::Fleet as ProblemFleet;
-use vrp_pragmatic::format::problem::Job as ProblemJob;
-use vrp_pragmatic::format::problem::Plan as ProblemPlan;
+use vrp_pragmatic::format::{Location, problem};
 use vrp_pragmatic::format::problem::{
     JobPlace, JobTask, Profile, VehicleCosts, VehiclePlace, VehicleShift, VehicleType,
 };
-use vrp_pragmatic::format::{problem, Location};
 
-// imports both the trait and the derive macro
+use vrp_pragmatic::format::problem::Fleet as ProblemFleet;
+use vrp_pragmatic::format::problem::Job as ProblemJob;
+use vrp_pragmatic::format::problem::Plan as ProblemPlan;
+
+use crate::geocoding;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -96,9 +97,9 @@ impl DetailedRequest {
             .iter()
             .map(|vehicle| {
                 vrp_pragmatic::format::problem::VehicleType {
-                    type_id: "vehicle".to_owned(), //TODO: understand type id's in Vehicle Type
+                    type_id: "vehicle".to_owned(), // TODO: understand type id's in Vehicle Type
                     vehicle_ids: (*vehicle.vehicle_ids).to_owned(),
-                    profile: "car".to_string(), //TODO: enumerate the profile for the simple problem
+                    profile: "car".to_string(), // TODO: enumerate the profile for the simple problem
                     costs: vrp_pragmatic::format::problem::VehicleCosts {
                         fixed: Option::from(vehicle.costs.fixed),
                         distance: vehicle.costs.distance,
@@ -110,25 +111,25 @@ impl DetailedRequest {
                         .map(|shift| VehicleShift {
                             start: VehiclePlace {
                                 time: shift.start.time.to_string(),
-                                //TODO: utilise geocoding to get coordinates
+                                // TODO: utilise geocoding to get coordinates
                                 location: Location { lat: 0.0, lng: 0.0 },
                             },
                             end: Option::from(VehiclePlace {
                                 time: shift.end.time.to_string(),
                                 location: Location { lat: 0.0, lng: 0.0 },
                             }), //optional
-                            breaks: None, //TODO: expose breaks
+                            breaks: None, // TODO: expose breaks
                             reloads: None,
                         })
                         .collect(),
                     capacity: vec![vehicle.capacity],
-                    skills: None, //TODO: expose some skills
-                    limits: None, //TODO: more on all of these
+                    skills: None, // TODO: expose some skills
+                    limits: None, // TODO: more on all of these
                 }
             })
             .collect();
 
-        //TODO: explain single profile and provide valid inputs
+        // TODO: explain single profile and provide valid inputs
         let profile = Profile {
             name: "car".to_string(),
             profile_type: "car".to_string(),
@@ -172,8 +173,7 @@ impl SimpleTrip {
                     replacements: None,
                     services: Some(vec![JobTask {
                         places: vec![JobPlace {
-                            // TODO [#22]: convert to long and lat
-                            location: Location { lat: 0.0, lng: 0.0 },
+                            location: geocoding::search_location(job),
                             // TODO [#23]: add constants to this duration
                             // TODO [#24]: parameterise duration for the simple type as an optional query parameter
                             duration: 120.0 * 60.0,
@@ -204,10 +204,9 @@ impl SimpleTrip {
                         time: 0.0,
                     },
                     shifts: vec![VehicleShift {
-                        // TODO [#25]: convert to long and lat
                         start: VehiclePlace {
                             time: chrono::Utc::now().to_rfc3339(),
-                            location: Location { lat: 0.0, lng: 0.0 },
+                            location: geocoding::search_location(vehicle),
                         },
                         end: None,
                         breaks: None,
