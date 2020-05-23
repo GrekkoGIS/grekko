@@ -50,5 +50,5 @@ pub async fn bulk_set(reader: &mut Reader<File>) {
 
     let result: RedisResult<i32> = pipeline.query_async(&mut con).await;
 
-    println!("Finished bootstrapping {} postcodes, result: {}", count, result.unwrap());
+    println!("Finished bootstrapping {} postcodes, result: {:?}", count, result);
 }

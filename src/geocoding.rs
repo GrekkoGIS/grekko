@@ -73,6 +73,7 @@ pub async fn bootstrap_postcode_cache() {
 
     println!("Bootstrapping postcode cache");
 
+    // I dont want to read these again to UTF so using a known const
     let mut reader = build_geocoding_csv();
 
     let count = redis_manager::count("POSTCODE").await;
