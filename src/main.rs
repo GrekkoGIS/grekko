@@ -1,6 +1,6 @@
 #![feature(option_result_contains)]
-// #[macro_use]
-// extern crate cached;
+#[macro_use]
+extern crate cached;
 
 use grekko::start_server;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -8,6 +8,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 pub mod geocoding;
 pub mod request;
 pub mod solver;
+pub mod redis;
 
 #[tokio::main]
 async fn main() {
