@@ -173,7 +173,7 @@ impl SimpleTrip {
                     replacements: None,
                     services: Some(vec![JobTask {
                         places: vec![JobPlace {
-                            location: geocoding::search_location(job),
+                            location: geocoding::lookup_coordinates(job),
                             // TODO [#23]: add constants to this duration
                             // TODO [#24]: parameterise duration for the simple type as an optional query parameter
                             duration: 120.0 * 60.0,
@@ -206,7 +206,7 @@ impl SimpleTrip {
                     shifts: vec![VehicleShift {
                         start: VehiclePlace {
                             time: chrono::Utc::now().to_rfc3339(),
-                            location: geocoding::search_location(vehicle),
+                            location: geocoding::lookup_coordinates(vehicle),
                         },
                         end: None,
                         breaks: None,

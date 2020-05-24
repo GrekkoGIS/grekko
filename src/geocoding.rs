@@ -63,8 +63,8 @@ pub async fn bootstrap_cache(table: &str) -> bool {
     }
 }
 
-pub fn search_location(query: &str) -> Location {
-    let coordinates: String = reverse_search_file(query);
+pub fn lookup_coordinates(query: &str) -> Location {
+    let coordinates: String = reverse_search(query);
     let coordinates: Vec<&str> = coordinates.split(',').collect();
     Location {
         lat: coordinates[0].parse().unwrap(),
@@ -81,7 +81,13 @@ pub fn reverse_search(query: &str) -> String {
 }
 
 pub fn reverse_search_cache(query: &str) -> String {
-    redis_manager::get(query.replace(" ", "").as_str())
+    let postcode = query
+        .replace(" ", "")
+        .replace("-", "")
+        .replace(",", "")
+        .replace(";", "")
+        .as_str();
+    redis_manager::get(postcode)
 }
 
 pub fn reverse_search_file(query: &str) -> String {
