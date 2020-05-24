@@ -1,6 +1,5 @@
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::Sender;
 use vrp_pragmatic::format::{Location, problem};
 use vrp_pragmatic::format::problem::{
     JobPlace, JobTask, Profile, VehicleCosts, VehiclePlace, VehicleShift, VehicleType,
@@ -238,44 +237,6 @@ impl SimpleTrip {
             objectives: None,
             config: None,
         }
-    }
-
-
-    pub async fn build_locations(&self, tx: &mut Sender<Location>) -> Vec<Location> {
-        vec![]
-
-        // jobs.clone().into_par_stream()
-        //     .map(|job| async move {
-        //         tx.send(geocoding::lookup_coordinates(job).await);
-        //     })
-        //     .collect()
-        //     .await;
-        // let jobs = rx.collect::<Vec<Location>>().await;
-        //
-        // let jobs = vec![];
-        // let jobs = jobs.iter().map(|location| {
-        //     // counter += 1;
-        //     ProblemJob {
-        //         id: String::from("Yep"),
-        //         // TODO [#21]: potentially switch on the type of job to decide whether its a pickup, delivery or service
-        //         pickups: None,
-        //         deliveries: None,
-        //         replacements: None,
-        //         services: Some(vec![JobTask {
-        //             places: vec![JobPlace {
-        //                 location: location.clone(),
-        //                 // TODO [#23]: add constants to this duration
-        //                 // TODO [#24]: parameterise duration for the simple type as an optional query parameter
-        //                 duration: JOB_LENGTH_MINUTES * 60.0,
-        //                 times: None,
-        //             }],
-        //             demand: None,
-        //             tag: Some(String::from("Simple 120 minute task")),
-        //         }]),
-        //         priority: None,
-        //         skills: None,
-        //     }
-        // }).collect();
     }
 }
 

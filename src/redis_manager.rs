@@ -2,6 +2,8 @@ use std::fs::File;
 
 use csv::Reader;
 use redis::{Client, Commands, RedisResult};
+use crate::geocoding::POSTCODE_TABLE_NAME;
+
 // TODO: add concurrency to all of this once benchmarked
 fn get_redis_client() -> RedisResult<Client> {
     redis::Client::open("redis://127.0.0.1/")
@@ -11,7 +13,7 @@ pub fn get_coordinates(postcode: &str) -> Option<String> {
     let client: Client = get_redis_client().ok()?;
     let mut con = client.get_connection().ok()?;
 
-    con.get(postcode).ok()?
+    con.hget(POSTCODE_TABLE_NAME, postcode).ok()?
 }
 
 pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
@@ -43,7 +45,6 @@ pub fn bulk_set(reader: &mut Reader<File>) {
     let postcode_index = 0;
     let lat_index = 1;
     let lon_index = 2;
-    let table_name = "POSTCODE";
 
     let mut count = 0;
     let mut pipeline = redis::pipe();
@@ -52,9 +53,9 @@ pub fn bulk_set(reader: &mut Reader<File>) {
     records.for_each(|row| {
         let row = &row.unwrap();
         count += 1;
-        &pipeline
+        pipeline
             .hset(
-                table_name,
+                POSTCODE_TABLE_NAME,
                 row.get(postcode_index).unwrap().to_string().replace(" ", ""),
                 format!("{};{}", row.get(lat_index).unwrap(), row.get(lon_index).unwrap()),
             )

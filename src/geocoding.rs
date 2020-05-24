@@ -47,10 +47,10 @@ pub fn bootstrap_cache(table: &str) -> bool {
 
 pub fn lookup_coordinates(query: String) -> Location {
     let coordinates: String = reverse_search(query);
-    let coordinates: Vec<&str> = coordinates.split(',').collect();
+    let coordinates: Vec<&str> = coordinates.split(';').collect();
     Location {
-        lat: coordinates[0].parse().unwrap(),
-        lng: coordinates[1].parse().unwrap(),
+        lat: coordinates[0].parse().expect("There weren't enough coordinates to extract latitude"),
+        lng: coordinates[1].parse().expect("There weren't enough coordinates to extract longitude"),
     }
 }
 
@@ -58,7 +58,7 @@ pub fn reverse_search(query: String) -> String {
     if bootstrap_cache(POSTCODE_TABLE_NAME) {
         match reverse_search_cache(query) {
             Some(value) => value,
-            None => String::from("EMPTY")
+            None => String::from("EMPTY") //TODO this is a poop error message
         }
     } else {
         reverse_search_file(query)
