@@ -22,8 +22,6 @@ pub const POSTCODE_TABLE_NAME: &str = "POSTCODE";
 pub fn bootstrap_cache(table: &str) -> bool {
     match table {
         POSTCODE_TABLE_NAME => {
-            println!("Bootstrapping postcode cache");
-
             // I dont want to read these again to UTF so using a known const
             let postcode_csv_size = 2628568;
             let mut reader = read_geocoding_csv();
@@ -31,10 +29,10 @@ pub fn bootstrap_cache(table: &str) -> bool {
             let count = redis_manager::count(table);
 
             if count != postcode_csv_size {
+                println!("Bootstrapping postcode cache");
                 redis_manager::bulk_set(&mut reader);
                 true
             } else {
-                println!("Postcodes have already been bootstrapped");
                 true
             }
         }

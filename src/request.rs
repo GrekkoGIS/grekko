@@ -163,18 +163,18 @@ impl SimpleTrip {
 
         let jobs = self.coordinate_jobs.to_vec()
             .into_par_iter()
-            .map(geocoding::lookup_coordinates)
-            .map(|location| {
+            .enumerate()
+            .map(|(index, location)| {
                 // counter += 1;
                 ProblemJob {
-                    id: String::from("Yep"), // TODO: counter let mut counter: i32 = 0;
+                    id: index.to_string(), // TODO: counter let mut counter: i32 = 0;
                     // TODO [#21]: potentially switch on the type of job to decide whether its a pickup, delivery or service
                     pickups: None,
                     deliveries: None,
                     replacements: None,
                     services: Some(vec![JobTask {
                         places: vec![JobPlace {
-                            location,
+                            location: geocoding::lookup_coordinates(location),
                             // TODO [#23]: add constants to this duration
                             // TODO [#24]: parameterise duration for the simple type as an optional query parameter
                             duration: JOB_LENGTH_MINUTES * 60.0,
