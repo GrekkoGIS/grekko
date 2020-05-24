@@ -3,8 +3,8 @@ use std::fs::File;
 use csv::{ByteRecord, Reader};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
-
-use crate::redis_manager;
+use cached::macros::*;
+use crate::{redis_manager};
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -17,31 +17,36 @@ pub enum GeocodingKind {
     COORDINATES(Vec<f64>),
 }
 
-pub const POSTCODE_TABLE_NAME: &str = "POSTCODE";
+cached!{
+    POSTCODES;
+    fn bootstrap_cache(table: String) -> bool = {
+        let table = table.to_string();
+        let string_postcode_table = POSTCODE_TABLE_NAME.to_string();
+        match table {
+            string_postcode_table => {
+                // I don't want to read these again to UTF so using a known const
+                let postcode_csv_size = 2628568;
+                let mut reader = crate::geocoding::read_geocoding_csv();
+                let count = redis_manager::count(POSTCODE_TABLE_NAME);
 
-pub fn bootstrap_cache(table: &str) -> bool {
-    match table {
-        POSTCODE_TABLE_NAME => {
-            // I dont want to read these again to UTF so using a known const
-            let postcode_csv_size = 2628568;
-            let mut reader = read_geocoding_csv();
-
-            let count = redis_manager::count(table);
-
-            if count != postcode_csv_size {
-                println!("Bootstrapping postcode cache");
-                redis_manager::bulk_set(&mut reader);
-                true
-            } else {
-                true
+                if count != postcode_csv_size {
+                    println!("Bootstrapping postcode cache");
+                    redis_manager::bulk_set(&mut reader);
+                    true
+                } else {
+                    true
+                }
             }
-        }
-        _ => {
-            println!("No available table named {}", table);
-            false
+            _ => {
+                println!("No available table named {}", table);
+                false
+            }
         }
     }
 }
+
+pub const POSTCODE_TABLE_NAME: &str = "POSTCODE";
+pub const COORDINATES_SEPARATOR: &str = ";";
 
 pub fn lookup_coordinates(query: String) -> Location {
     let coordinates: String = reverse_search(query);
@@ -52,8 +57,12 @@ pub fn lookup_coordinates(query: String) -> Location {
     }
 }
 
+pub fn get_postcodes() -> bool {
+    bootstrap_cache(POSTCODE_TABLE_NAME.to_string())
+}
+
 pub fn reverse_search(query: String) -> String {
-    if bootstrap_cache(POSTCODE_TABLE_NAME) {
+    if get_postcodes() {
         match reverse_search_cache(query) {
             Some(value) => value,
             None => String::from("EMPTY") //TODO this is a poop error message
@@ -69,7 +78,7 @@ pub fn reverse_search_cache(query: String) -> Option<String> {
     let postcode = postcode.replace(" ", "");
     let postcode = postcode.replace("-", "");
     let postcode = postcode.replace(",", "");
-    let postcode = postcode.replace(";", "");
+    let postcode = postcode.replace(COORDINATES_SEPARATOR, "");
     let postcode = postcode.as_str();
 
     redis_manager::get_coordinates(postcode)
@@ -100,8 +109,7 @@ pub fn reverse_search_file(query: String) -> String {
 }
 
 pub fn forward_search(lat_long: Vec<f64>) -> String {
-    if bootstrap_cache(POSTCODE_TABLE_NAME) {
-        // TODO: forward search the cache
+    if get_postcodes() {
         forward_search_cache(lat_long)
     } else {
         forward_search_file(lat_long)
@@ -132,13 +140,14 @@ pub fn forward_search_file(lat_lon: Vec<f64>) -> String {
         .expect("Unable to unwrap postcode")
 }
 
-fn read_geocoding_csv() -> Reader<File> {
+pub fn read_geocoding_csv() -> Reader<File> {
     csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv")
 }
 
 #[cfg(test)]
 mod tests {
     use crate::geocoding::{bootstrap_cache, forward_search_file, reverse_search_file};
+    use grekko::get_postcodes;
 
     #[test]
     fn test_search_postcode() {
@@ -155,6 +164,6 @@ mod tests {
 
     #[test]
     fn test_bootstrap_postcode_cache() {
-        bootstrap_cache("POSTCODE");
+        get_postcodes();
     }
 }

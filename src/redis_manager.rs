@@ -2,7 +2,7 @@ use std::fs::File;
 
 use csv::Reader;
 use redis::{Client, Commands, RedisResult};
-use crate::geocoding::POSTCODE_TABLE_NAME;
+use crate::geocoding::{POSTCODE_TABLE_NAME, COORDINATES_SEPARATOR};
 
 // TODO: add concurrency to all of this once benchmarked
 fn get_redis_client() -> RedisResult<Client> {
@@ -24,7 +24,7 @@ pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
         .iter()
         .map(|coord| coord.to_string())
         .collect::<Vec<String>>()
-        .join(";");
+        .join(COORDINATES_SEPARATOR);
 
     redis::cmd("HSCAN").arg(&["0", "MATCH", &coord_string]).query(&mut con).ok()?
     // con.get(postcode).ok()?

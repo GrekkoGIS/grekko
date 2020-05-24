@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate cached;
+
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::net::SocketAddr;
@@ -14,7 +17,7 @@ mod redis_manager;
 
 pub async fn start_server(addr: SocketAddr) {
     tokio::task::spawn(async {
-        geocoding::bootstrap_cache(geocoding::POSTCODE_TABLE_NAME);
+        geocoding::get_postcodes();
     });
 
     // TODO [#18]: potentially move path parameterized geocoding to query

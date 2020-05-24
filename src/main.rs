@@ -1,10 +1,13 @@
 #![feature(option_result_contains)]
 #![feature(in_band_lifetimes)]
+
 #[macro_use]
 extern crate cached;
 
-use grekko::start_server;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+use grekko::start_server;
+
 
 pub mod geocoding;
 pub mod request;
