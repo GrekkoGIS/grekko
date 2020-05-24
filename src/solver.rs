@@ -15,8 +15,8 @@ pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) ->
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
 
     solution
-        .write_pragmatic_json(&problem, writer)
-        // .write_geo_json(&problem, writer)
+        // .write_pragmatic_json(&problem, writer)
+        .write_geo_json(&problem, writer)
         .expect("cannot write pragmatic solution");
 
     deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
@@ -24,10 +24,12 @@ pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) ->
 
 pub fn create_builder(problem: &Arc<CoreProblem>) -> (CoreSolution, f64) {
     Builder::default()
-        .with_max_generations(Some(10))
         .with_problem(problem.clone())
+        .with_max_generations(Some(100))
+        .with_max_time(Some(90))
         .build()
         .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
+        // TODO: move this out
         .solve()
         .unwrap_or_else(|err| panic!("cannot solver problem: {}", err))
 }

@@ -49,11 +49,11 @@ pub const POSTCODE_TABLE_NAME: &str = "POSTCODE";
 pub const COORDINATES_SEPARATOR: &str = ";";
 
 pub fn lookup_coordinates(query: String) -> Location {
-    let coordinates: String = reverse_search(query);
+    let coordinates: String = reverse_search(query.clone());
     let coordinates: Vec<&str> = coordinates.split(';').collect();
     Location {
-        lat: coordinates[0].parse().expect("There weren't enough coordinates to extract latitude"),
-        lng: coordinates[1].parse().expect("There weren't enough coordinates to extract longitude"),
+        lat: coordinates[0].parse().expect(format!("There weren't enough coordinates to extract latitude for postcode {}", query).as_str()),
+        lng: coordinates[1].parse().expect(format!("There weren't enough coordinates to extract longitude for postcode {}", query).as_str()),
     }
 }
 
@@ -146,7 +146,7 @@ pub fn read_geocoding_csv() -> Reader<File> {
 
 #[cfg(test)]
 mod tests {
-    use crate::geocoding::{bootstrap_cache, forward_search_file, reverse_search_file};
+    use crate::geocoding::{bootstrap_cache, forward_search_file, reverse_search_file, get_postcodes};
     use grekko::get_postcodes;
 
     #[test]
