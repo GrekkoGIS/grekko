@@ -159,9 +159,32 @@ pub struct SimpleTrip {
 
 impl SimpleTrip {
     pub async fn convert_to_internal_problem(&self) -> problem::Problem {
+        problem::Problem {
+            plan: ProblemPlan {
+                jobs: self.build_jobs(),
+                relations: None,
+            },
+            fleet: ProblemFleet {
+                vehicles: self.build_vehicles(),
+                profiles: vec![self.get_simple_profile()],
+            },
+            objectives: None,
+            config: None,
+        }
+    }
+
+    fn get_simple_profile(&self) -> Profile {
+        Profile {
+            name: "car".to_string(),
+            profile_type: "car".to_string(),
+            speed: None,
+        }
+    }
+
+    fn build_jobs(&self) -> Vec<ProblemJob> {
         const JOB_LENGTH_MINUTES: f64 = 120.0;
 
-        let jobs = self.coordinate_jobs.to_vec()
+        self.coordinate_jobs.to_vec()
             .into_par_iter()
             .enumerate()
             .map(|(index, location)| {
@@ -187,9 +210,11 @@ impl SimpleTrip {
                     skills: None,
                 }
             })
-            .collect();
+            .collect()
+    }
 
-        let vehicles = self.coordinate_vehicles.to_vec()
+    fn build_vehicles(&self) -> Vec<VehicleType> {
+        self.coordinate_vehicles.to_vec()
             .into_par_iter()
             .enumerate()
             .map(|(i, vehicle)| {
@@ -217,26 +242,7 @@ impl SimpleTrip {
                     limits: None,
                 }
             })
-            .collect();
-
-        let profile = Profile {
-            name: "car".to_string(),
-            profile_type: "car".to_string(),
-            speed: None,
-        };
-
-        problem::Problem {
-            plan: ProblemPlan {
-                jobs,
-                relations: None,
-            },
-            fleet: ProblemFleet {
-                vehicles,
-                profiles: vec![profile],
-            },
-            objectives: None,
-            config: None,
-        }
+            .collect()
     }
 }
 
