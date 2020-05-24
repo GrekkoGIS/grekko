@@ -55,7 +55,7 @@ pub async fn start_server(addr: SocketAddr) {
 pub async fn receive_and_search_coordinates(
     postcode: String,
 ) -> Result<impl warp::Reply, Infallible> {
-    let result = geocoding::reverse_search_file(postcode);
+    let result = geocoding::reverse_search(postcode);
     Ok(result)
 }
 
@@ -63,7 +63,7 @@ pub async fn receive_and_search_postcode(
     lat: f64,
     lon: f64,
 ) -> Result<impl warp::Reply, Infallible> {
-    let result = geocoding::forward_search_file(vec![lat, lon]);
+    let result = geocoding::forward_search(vec![lat, lon]);
     Ok(result)
 }
 

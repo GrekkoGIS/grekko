@@ -109,10 +109,10 @@ pub fn forward_search(lat_long: Vec<f64>) -> String {
 }
 
 pub fn forward_search_cache(lat_long: Vec<f64>) -> String {
-    {
-        redis_manager::get_postcode(lat_long)
-    };
-    String::new()
+    match redis_manager::get_postcode(lat_long) {
+        None => String::from("Postcode couldn't be found"),
+        Some(value) => value,
+    }
 }
 
 pub fn forward_search_file(lat_lon: Vec<f64>) -> String {

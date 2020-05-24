@@ -9,6 +9,7 @@ use vrp_pragmatic::format::problem::Job as ProblemJob;
 use vrp_pragmatic::format::problem::Plan as ProblemPlan;
 
 use crate::geocoding;
+use chrono::Duration;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -182,15 +183,14 @@ impl SimpleTrip {
     }
 
     fn build_jobs(&self) -> Vec<ProblemJob> {
-        const JOB_LENGTH_MINUTES: f64 = 120.0;
+        const JOB_LENGTH: f64 = 120.0;
 
         self.coordinate_jobs.to_vec()
             .into_par_iter()
             .enumerate()
             .map(|(index, location)| {
-                // counter += 1;
                 ProblemJob {
-                    id: index.to_string(), // TODO: counter let mut counter: i32 = 0;
+                    id: index.to_string(),
                     // TODO [#21]: potentially switch on the type of job to decide whether its a pickup, delivery or service
                     pickups: None,
                     deliveries: None,
@@ -200,7 +200,7 @@ impl SimpleTrip {
                             location: geocoding::lookup_coordinates(location),
                             // TODO [#23]: add constants to this duration
                             // TODO [#24]: parameterise duration for the simple type as an optional query parameter
-                            duration: JOB_LENGTH_MINUTES * 60.0,
+                            duration: Duration::minutes(JOB_LENGTH as i64).num_seconds() as f64,
                             times: None,
                         }],
                         demand: None,
