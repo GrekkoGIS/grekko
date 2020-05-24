@@ -1,9 +1,10 @@
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc::Sender;
 use vrp_pragmatic::format::{Location, problem};
 use vrp_pragmatic::format::problem::{
     JobPlace, JobTask, Profile, VehicleCosts, VehiclePlace, VehicleShift, VehicleType,
 };
-
 use vrp_pragmatic::format::problem::Fleet as ProblemFleet;
 use vrp_pragmatic::format::problem::Job as ProblemJob;
 use vrp_pragmatic::format::problem::Plan as ProblemPlan;
@@ -158,25 +159,26 @@ pub struct SimpleTrip {
 }
 
 impl SimpleTrip {
-    pub fn convert_to_internal_problem(self) -> problem::Problem {
-        let mut counter: i32 = 0;
-        let jobs = self
-            .coordinate_jobs
-            .iter()
-            .map(|job| {
-                counter += 1;
+    pub async fn convert_to_internal_problem(&self) -> problem::Problem {
+        const JOB_LENGTH_MINUTES: f64 = 120.0;
+
+        let jobs = self.coordinate_jobs.to_vec()
+            .into_par_iter()
+            .map(geocoding::lookup_coordinates)
+            .map(|location| {
+                // counter += 1;
                 ProblemJob {
-                    id: counter.to_string(),
+                    id: String::from("Yep"), // TODO: counter let mut counter: i32 = 0;
                     // TODO [#21]: potentially switch on the type of job to decide whether its a pickup, delivery or service
                     pickups: None,
                     deliveries: None,
                     replacements: None,
                     services: Some(vec![JobTask {
                         places: vec![JobPlace {
-                            location: geocoding::lookup_coordinates(job),
+                            location,
                             // TODO [#23]: add constants to this duration
                             // TODO [#24]: parameterise duration for the simple type as an optional query parameter
-                            duration: 120.0 * 60.0,
+                            duration: JOB_LENGTH_MINUTES * 60.0,
                             times: None,
                         }],
                         demand: None,
@@ -187,16 +189,15 @@ impl SimpleTrip {
                 }
             })
             .collect();
-        let mut counter: i32 = 0;
-        let vehicles = self
-            .coordinate_vehicles
-            .iter()
-            .map(|vehicle| {
-                counter += 1;
+
+        let vehicles = self.coordinate_vehicles.to_vec()
+            .into_par_iter()
+            .enumerate()
+            .map(|(i, vehicle)| {
                 VehicleType {
-                    type_id: counter.to_string(),
-                    // type_id: "car".to_string(),
-                    vehicle_ids: vec![counter.to_string()],
+                    type_id: i.to_string(),
+                    // TODO: type_id: "car".to_string(),
+                    vehicle_ids: vec![i.to_string()],
                     profile: "car".to_string(),
                     costs: VehicleCosts {
                         fixed: None,
@@ -206,7 +207,7 @@ impl SimpleTrip {
                     shifts: vec![VehicleShift {
                         start: VehiclePlace {
                             time: chrono::Utc::now().to_rfc3339(),
-                            location: geocoding::lookup_coordinates(vehicle),
+                            location: geocoding::lookup_coordinates(vehicle.to_string()),
                         },
                         end: None,
                         breaks: None,
@@ -218,6 +219,7 @@ impl SimpleTrip {
                 }
             })
             .collect();
+
         let profile = Profile {
             name: "car".to_string(),
             profile_type: "car".to_string(),
@@ -236,6 +238,44 @@ impl SimpleTrip {
             objectives: None,
             config: None,
         }
+    }
+
+
+    pub async fn build_locations(&self, tx: &mut Sender<Location>) -> Vec<Location> {
+        vec![]
+
+        // jobs.clone().into_par_stream()
+        //     .map(|job| async move {
+        //         tx.send(geocoding::lookup_coordinates(job).await);
+        //     })
+        //     .collect()
+        //     .await;
+        // let jobs = rx.collect::<Vec<Location>>().await;
+        //
+        // let jobs = vec![];
+        // let jobs = jobs.iter().map(|location| {
+        //     // counter += 1;
+        //     ProblemJob {
+        //         id: String::from("Yep"),
+        //         // TODO [#21]: potentially switch on the type of job to decide whether its a pickup, delivery or service
+        //         pickups: None,
+        //         deliveries: None,
+        //         replacements: None,
+        //         services: Some(vec![JobTask {
+        //             places: vec![JobPlace {
+        //                 location: location.clone(),
+        //                 // TODO [#23]: add constants to this duration
+        //                 // TODO [#24]: parameterise duration for the simple type as an optional query parameter
+        //                 duration: JOB_LENGTH_MINUTES * 60.0,
+        //                 times: None,
+        //             }],
+        //             demand: None,
+        //             tag: Some(String::from("Simple 120 minute task")),
+        //         }]),
+        //         priority: None,
+        //         skills: None,
+        //     }
+        // }).collect();
     }
 }
 

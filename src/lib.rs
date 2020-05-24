@@ -14,7 +14,7 @@ mod redis_manager;
 
 pub async fn start_server(addr: SocketAddr) {
     tokio::task::spawn(async {
-        geocoding::bootstrap_cache(geocoding::POSTCODE_TABLE_NAME).await;
+        geocoding::bootstrap_cache(geocoding::POSTCODE_TABLE_NAME);
     });
 
     // TODO [#18]: potentially move path parameterized geocoding to query
@@ -55,7 +55,7 @@ pub async fn start_server(addr: SocketAddr) {
 pub async fn receive_and_search_coordinates(
     postcode: String,
 ) -> Result<impl warp::Reply, Infallible> {
-    let result = geocoding::reverse_search_file(postcode.as_ref());
+    let result = geocoding::reverse_search_file(postcode);
     Ok(result)
 }
 
@@ -74,7 +74,7 @@ pub async fn trip(request: Problem) -> Result<impl warp::Reply, Infallible> {
 
 pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {
     // Convert simple trip to internal problem
-    let problem = trip.clone().convert_to_internal_problem();
+    let problem = trip.clone().convert_to_internal_problem().await;
     // Convert internal problem to a core problem
     let core_problem = problem.read_pragmatic();
     // Create an ARC for it
@@ -87,7 +87,7 @@ pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, 
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
 
     // TODO [#20]: this context builder is silly, refactor it
-    let problem: Problem = trip.convert_to_internal_problem();
+    let problem: Problem = trip.convert_to_internal_problem().await;
     let context = CheckerContext::new(problem, None, solution);
 
     if let Err(err) = context.check() {

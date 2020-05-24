@@ -522,6 +522,7 @@ dependencies = [
  "chrono",
  "csv",
  "lru",
+ "rayon",
  "redis",
  "serde",
  "serde_json",

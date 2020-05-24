@@ -3,7 +3,6 @@ use std::fs::File;
 use csv::{ByteRecord, Reader};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
-use warp::{Filter, Future};
 
 use crate::redis_manager;
 
@@ -18,27 +17,9 @@ pub enum GeocodingKind {
     COORDINATES(Vec<f64>),
 }
 
-// let mut cache = LruCache::new(1);
-// cache.put("postcodes", build_geocoding_csv());
-//
-// // let forward_geocoding_postcodes = postcodes.clone();
-// // let reverse_geocoding_postcodes = postcodes.clone();
-//
-// let (mut sender, mut receiver) = channel(100);
-// sender.send(cache.get(&"postcodes").unwrap());
-
-// TODO [#17]: memoize the cached keys and utilise channels to get it working
-// cached!{
-//     POSTCODES;
-//     fn build_geocoding_csv() -> Reader<File> = {
-//         let records = csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv").;
-//         records
-//     }
-// }
-
 pub const POSTCODE_TABLE_NAME: &str = "POSTCODE";
 
-pub async fn bootstrap_cache(table: &str) -> bool {
+pub fn bootstrap_cache(table: &str) -> bool {
     match table {
         POSTCODE_TABLE_NAME => {
             println!("Bootstrapping postcode cache");
@@ -47,10 +28,10 @@ pub async fn bootstrap_cache(table: &str) -> bool {
             let postcode_csv_size = 2628568;
             let mut reader = read_geocoding_csv();
 
-            let count = redis_manager::count(table).await;
+            let count = redis_manager::count(table);
 
             if count != postcode_csv_size {
-                redis_manager::bulk_set(&mut reader).await;
+                redis_manager::bulk_set(&mut reader);
                 true
             } else {
                 println!("Postcodes have already been bootstrapped");
@@ -64,7 +45,7 @@ pub async fn bootstrap_cache(table: &str) -> bool {
     }
 }
 
-pub fn lookup_coordinates(query: &str) -> Location {
+pub fn lookup_coordinates(query: String) -> Location {
     let coordinates: String = reverse_search(query);
     let coordinates: Vec<&str> = coordinates.split(',').collect();
     Location {
@@ -73,22 +54,19 @@ pub fn lookup_coordinates(query: &str) -> Location {
     }
 }
 
-pub fn reverse_search(query: &str) -> String {
-    let mut result = String::new();
-    tokio::task::spawn(async {
-        if bootstrap_cache(POSTCODE_TABLE_NAME).await {
-            result = match reverse_search_cache(query).await {
-                Some(value) => value,
-                None => String::from("EMPTY")
-            }
-        } else {
-            result = reverse_search_file(query)
+pub fn reverse_search(query: String) -> String {
+    if bootstrap_cache(POSTCODE_TABLE_NAME) {
+        match reverse_search_cache(query) {
+            Some(value) => value,
+            None => String::from("EMPTY")
         }
-    });
-    result
+    } else {
+        reverse_search_file(query)
+    }
 }
 
-pub async fn reverse_search_cache(query: &str) -> Option<String> {
+pub fn reverse_search_cache(query: String) -> Option<String> {
+    // TODO sort this out, rust doesnt like fluent
     let postcode = query;
     let postcode = postcode.replace(" ", "");
     let postcode = postcode.replace("-", "");
@@ -96,10 +74,10 @@ pub async fn reverse_search_cache(query: &str) -> Option<String> {
     let postcode = postcode.replace(";", "");
     let postcode = postcode.as_str();
 
-    redis_manager::get_coordinates(postcode).await
+    redis_manager::get_coordinates(postcode)
 }
 
-pub fn reverse_search_file(query: &str) -> String {
+pub fn reverse_search_file(query: String) -> String {
     let lat_index = 1;
     let lon_index = 2;
     let res: ByteRecord = read_geocoding_csv()
@@ -124,21 +102,17 @@ pub fn reverse_search_file(query: &str) -> String {
 }
 
 pub fn forward_search(lat_long: Vec<f64>) -> String {
-    let mut result = String::new();
-    async {
-        if bootstrap_cache(POSTCODE_TABLE_NAME).await {
-            // TODO: forward search the cache
-            result = forward_search_cache(lat_long)
-        } else {
-            result = forward_search_file(lat_long)
-        }
-    };
-    result
+    if bootstrap_cache(POSTCODE_TABLE_NAME) {
+        // TODO: forward search the cache
+        forward_search_cache(lat_long)
+    } else {
+        forward_search_file(lat_long)
+    }
 }
 
 pub fn forward_search_cache(lat_long: Vec<f64>) -> String {
-    async {
-        redis_manager::get_postcode(lat_long).await
+    {
+        redis_manager::get_postcode(lat_long)
     };
     String::new()
 }
@@ -177,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_search_coordinates() {
-        let coordinates = reverse_search_file("AB1-0AJ");
+        let coordinates = reverse_search_file(String::from("AB1-0AJ"));
         assert_eq!(coordinates, "57.099011;-2.252854")
     }
 
