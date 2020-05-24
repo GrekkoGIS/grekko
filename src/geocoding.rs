@@ -34,8 +34,37 @@ pub enum GeocodingKind {
 //     }
 // }
 
+const POSTCODE_TABLE_NAME: &str = "POSTCODE";
+
+pub async fn bootstrap_cache(table: &str) -> bool {
+
+    match table {
+        POSTCODE_TABLE_NAME => {
+            println!("Bootstrapping postcode cache");
+
+            // I dont want to read these again to UTF so using a known const
+            let postcode_csv_size = 2628568;
+            let mut reader = read_geocoding_csv();
+
+            let count = redis_manager::count(table).await;
+
+            if count != postcode_csv_size {
+                redis_manager::bulk_set(&mut reader).await;
+                true
+            } else {
+                println!("Postcodes have already been bootstrapped");
+                true
+            }
+        },
+        _ => {
+            println!("No available table named {}", table);
+            false
+        }
+    }
+}
+
 pub fn search_location(query: &str) -> Location {
-    let coordinates: String = search_coordinates(query);
+    let coordinates: String = reverse_search_file(query);
     let coordinates: Vec<&str> = coordinates.split(',').collect();
     Location {
         lat: coordinates[0].parse().unwrap(),
@@ -43,10 +72,22 @@ pub fn search_location(query: &str) -> Location {
     }
 }
 
-pub fn search_coordinates(query: &str) -> String {
+pub fn reverse_search(query: &str) -> String {
+    if bootstrap_cache(POSTCODE_TABLE_NAME) {
+        reverse_search_cache(query)
+    } else {
+        reverse_search_file(query)
+    }
+}
+
+pub fn reverse_search_cache(query: &str) -> String {
+    redis_manager::get(query.replace(" ", "").as_str())
+}
+
+pub fn reverse_search_file(query: &str) -> String {
     let lat_index = 1;
     let lon_index = 2;
-    let res: ByteRecord = build_geocoding_csv()
+    let res: ByteRecord = read_geocoding_csv()
         .byte_records()
         .find(|record| {
             record
@@ -67,27 +108,26 @@ pub fn search_coordinates(query: &str) -> String {
     )
 }
 
-pub async fn bootstrap_postcode_cache() {
 
-    let postcode_csv_size = 2628568;
-
-    println!("Bootstrapping postcode cache");
-
-    // I dont want to read these again to UTF so using a known const
-    let mut reader = build_geocoding_csv();
-
-    let count = redis_manager::count("POSTCODE").await;
-
-    if count != postcode_csv_size {
-        redis_manager::bulk_set(&mut reader).await;
+pub fn forward_search(lat_long: Vec<f64>) -> String {
+    if bootstrap_cache(POSTCODE_TABLE_NAME) {
+        // TODO: forward search the cache
+        forward_search_file(lat_long)
     } else {
-        println!("Postcodes have already been set")
+        forward_search_file(lat_long)
     }
 }
 
-pub fn search_postcode(lat_lon: Vec<f64>) -> String {
+pub fn forward_search_cache(lat_long: Vec<f64>) -> String {
+    if bootstrap_cache(POSTCODE_TABLE_NAME) {
+        // redis_manager::get(lat_long)
+    }
+    String::new()
+}
+
+pub fn forward_search_file(lat_lon: Vec<f64>) -> String {
     let postcode_index = 0;
-    let res: ByteRecord = build_geocoding_csv()
+    let res: ByteRecord = read_geocoding_csv()
         .byte_records()
         .find(|record| {
             record
@@ -102,29 +142,29 @@ pub fn search_postcode(lat_lon: Vec<f64>) -> String {
         .expect("Unable to unwrap postcode")
 }
 
-fn build_geocoding_csv() -> Reader<File> {
+fn read_geocoding_csv() -> Reader<File> {
     csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv")
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::geocoding::{search_coordinates, search_postcode, bootstrap_postcode_cache};
+    use crate::geocoding::{reverse_search_file, forward_search_file, bootstrap_cache};
 
     #[test]
     fn test_search_postcode() {
         let coordinates = vec![57.099011, -2.252854];
-        let postcode = search_postcode(coordinates);
-        assert_eq!(postcode, "AB1 0AJ")
+        let postcode = forward_search_file(coordinates);
+        assert_eq!(postcode, "AB10AJ")
     }
 
     #[test]
     fn test_search_coordinates() {
-        let coordinates = search_coordinates("AB1-0AJ");
+        let coordinates = reverse_search_file("AB1-0AJ");
         assert_eq!(coordinates, "57.099011;-2.252854")
     }
 
     #[test]
     fn test_bootstrap_postcode_cache() {
-        bootstrap_postcode_cache();
+        bootstrap_cache("POSTCODE");
     }
 }
