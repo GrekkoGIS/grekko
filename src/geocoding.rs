@@ -3,6 +3,8 @@ use std::fs::File;
 use csv::{ByteRecord, Reader};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
+use warp::{Filter, Future};
+
 use crate::redis_manager;
 
 #[derive(Deserialize)]
@@ -34,10 +36,9 @@ pub enum GeocodingKind {
 //     }
 // }
 
-const POSTCODE_TABLE_NAME: &str = "POSTCODE";
+pub const POSTCODE_TABLE_NAME: &str = "POSTCODE";
 
 pub async fn bootstrap_cache(table: &str) -> bool {
-
     match table {
         POSTCODE_TABLE_NAME => {
             println!("Bootstrapping postcode cache");
@@ -55,7 +56,7 @@ pub async fn bootstrap_cache(table: &str) -> bool {
                 println!("Postcodes have already been bootstrapped");
                 true
             }
-        },
+        }
         _ => {
             println!("No available table named {}", table);
             false
@@ -73,21 +74,29 @@ pub fn lookup_coordinates(query: &str) -> Location {
 }
 
 pub fn reverse_search(query: &str) -> String {
-    if bootstrap_cache(POSTCODE_TABLE_NAME) {
-        reverse_search_cache(query)
-    } else {
-        reverse_search_file(query)
-    }
+    let mut result = String::new();
+    tokio::task::spawn(async {
+        if bootstrap_cache(POSTCODE_TABLE_NAME).await {
+            result = match reverse_search_cache(query).await {
+                Some(value) => value,
+                None => String::from("EMPTY")
+            }
+        } else {
+            result = reverse_search_file(query)
+        }
+    });
+    result
 }
 
-pub fn reverse_search_cache(query: &str) -> String {
-    let postcode = query
-        .replace(" ", "")
-        .replace("-", "")
-        .replace(",", "")
-        .replace(";", "")
-        .as_str();
-    redis_manager::get(postcode)
+pub async fn reverse_search_cache(query: &str) -> Option<String> {
+    let postcode = query;
+    let postcode = postcode.replace(" ", "");
+    let postcode = postcode.replace("-", "");
+    let postcode = postcode.replace(",", "");
+    let postcode = postcode.replace(";", "");
+    let postcode = postcode.as_str();
+
+    redis_manager::get_coordinates(postcode).await
 }
 
 pub fn reverse_search_file(query: &str) -> String {
@@ -114,20 +123,23 @@ pub fn reverse_search_file(query: &str) -> String {
     )
 }
 
-
 pub fn forward_search(lat_long: Vec<f64>) -> String {
-    if bootstrap_cache(POSTCODE_TABLE_NAME) {
-        // TODO: forward search the cache
-        forward_search_file(lat_long)
-    } else {
-        forward_search_file(lat_long)
-    }
+    let mut result = String::new();
+    async {
+        if bootstrap_cache(POSTCODE_TABLE_NAME).await {
+            // TODO: forward search the cache
+            result = forward_search_cache(lat_long)
+        } else {
+            result = forward_search_file(lat_long)
+        }
+    };
+    result
 }
 
 pub fn forward_search_cache(lat_long: Vec<f64>) -> String {
-    if bootstrap_cache(POSTCODE_TABLE_NAME) {
-        // redis_manager::get(lat_long)
-    }
+    async {
+        redis_manager::get_postcode(lat_long).await
+    };
     String::new()
 }
 
@@ -154,7 +166,7 @@ fn read_geocoding_csv() -> Reader<File> {
 
 #[cfg(test)]
 mod tests {
-    use crate::geocoding::{reverse_search_file, forward_search_file, bootstrap_cache};
+    use crate::geocoding::{bootstrap_cache, forward_search_file, reverse_search_file};
 
     #[test]
     fn test_search_postcode() {

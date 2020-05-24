@@ -14,7 +14,7 @@ mod redis_manager;
 
 pub async fn start_server(addr: SocketAddr) {
     tokio::task::spawn(async {
-        geocoding::bootstrap_cache().await;
+        geocoding::bootstrap_cache(geocoding::POSTCODE_TABLE_NAME).await;
     });
 
     // TODO [#18]: potentially move path parameterized geocoding to query

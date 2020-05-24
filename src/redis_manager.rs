@@ -7,11 +7,25 @@ fn get_redis_client() -> RedisResult<Client> {
     redis::Client::open("redis://127.0.0.1/")
 }
 
-pub async fn get(query: &str) -> Option<String> {
+pub async fn get_coordinates(postcode: &str) -> Option<String> {
     let client: Client = get_redis_client().ok()?;
     let mut con = client.get_async_connection().await.ok()?;
 
-    con.get(query).await.ok()?
+    con.get(postcode).await.ok()?
+}
+
+pub async fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
+    let client: Client = get_redis_client().ok()?;
+    let mut con = client.get_async_connection().await.ok()?;
+
+    let coord_string = coordinates
+        .iter()
+        .map(|coord| coord.to_string())
+        .collect::<Vec<String>>()
+        .join(";");
+
+    redis::cmd("HSCAN").arg(&["0", "MATCH", &coord_string]).query_async(&mut con).await.ok()?
+    // con.get(postcode).await.ok()?
 }
 
 pub async fn count(table: &str) -> i32 {
