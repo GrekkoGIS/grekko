@@ -2,7 +2,7 @@ use std::io::{BufReader, BufWriter};
 
 use std::sync::Arc;
 use vrp_core::models::{Problem as CoreProblem, Solution as CoreSolution};
-use vrp_core::solver::Builder;
+use vrp_core::solver::{Builder, Solver};
 use vrp_pragmatic::format::problem::{deserialize_problem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 
@@ -22,14 +22,17 @@ pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) ->
     deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
 }
 
-pub fn create_builder(problem: &Arc<CoreProblem>) -> (CoreSolution, f64) {
+pub fn create_solver(problem: &Arc<CoreProblem>) -> Solver {
     Builder::default()
         .with_problem(problem.clone())
         .with_max_generations(Some(100))
         .with_max_time(Some(90))
         .build()
         .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
-        // TODO: move this out
+}
+
+pub fn solve_problem(solver: Solver) -> (CoreSolution, f64) {
+    solver
         .solve()
         .unwrap_or_else(|err| panic!("cannot solver problem: {}", err))
 }
@@ -38,7 +41,7 @@ pub fn create_builder(problem: &Arc<CoreProblem>) -> (CoreSolution, f64) {
 mod tests {
     use std::sync::Arc;
 
-    use crate::solver::{create_builder, get_pragmatic_problem, get_pragmatic_solution};
+    use crate::solver::{solve_problem, get_pragmatic_problem, get_pragmatic_solution, create_solver};
     use vrp_core::solver::Builder;
     use vrp_pragmatic::checker::CheckerContext;
     use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
@@ -1069,7 +1072,7 @@ mod tests {
 
         let problem = String::from(problem_text).read_pragmatic();
         let problem = Arc::new(problem.expect("Problem could not be marshalled to an arc"));
-        let (solution, _) = create_builder(&problem);
+        let (solution, _) = solve_problem(&create_solver(&problem));
 
         let solution: Solution =
             get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);

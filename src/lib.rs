@@ -84,7 +84,7 @@ pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, 
     let problem =
         Arc::new(core_problem.expect("Could not read a pragmatic problem into a core problem"));
     // Start building a solution
-    let (solution, _) = solver::create_builder(&problem);
+    let (solution, _) = solver::solve_problem(solver::create_solver(&problem));
     // Convert that to a pragmatic solution
     let solution: Solution =
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
