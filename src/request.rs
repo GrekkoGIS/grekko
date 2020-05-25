@@ -175,10 +175,13 @@ impl SimpleTrip {
     }
 
     fn get_simple_profile(&self) -> Profile {
+        const FOURTY_MPH_IN_METRES_PER_SECOND: f64 = 17.0;
+        let normal_car = "normal_car".to_string();
+        let car_type = "car".to_string();
         Profile {
-            name: "car".to_string(),
-            profile_type: "car".to_string(),
-            speed: None,
+            name: normal_car,
+            profile_type: car_type,
+            speed: Some(FOURTY_MPH_IN_METRES_PER_SECOND), // TODO: average 40mph
         }
     }
 
@@ -222,11 +225,11 @@ impl SimpleTrip {
                     type_id: i.to_string(),
                     // TODO: type_id: "car".to_string(),
                     vehicle_ids: vec![i.to_string()],
-                    profile: "car".to_string(),
+                    profile: "normal_car".to_string(),
                     costs: VehicleCosts {
-                        fixed: None,
-                        distance: 0.0,
-                        time: 0.0,
+                        fixed: Some(22.0),
+                        distance: 0.0002,
+                        time: 0.004806,
                     },
                     shifts: vec![VehicleShift {
                         start: VehiclePlace {

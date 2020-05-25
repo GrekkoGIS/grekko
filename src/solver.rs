@@ -15,8 +15,8 @@ pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) ->
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
 
     solution
-        // .write_pragmatic_json(&problem, writer)
-        .write_geo_json(&problem, writer)
+        .write_pragmatic_json(&problem, writer)
+        // .write_geo_json(&problem, writer)
         .expect("cannot write pragmatic solution");
 
     deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
