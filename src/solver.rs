@@ -12,7 +12,7 @@ pub fn get_pragmatic_problem(problem_text: &str) -> Problem {
 
 pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {
     let mut buffer = String::new();
-    // TODO [$5ecc340c0333270007090fc5]: don't be unsafe
+    // TODO [#36]: don't be unsafe
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
 
     solution

@@ -112,7 +112,7 @@ impl DetailedRequest {
                         .map(|shift| VehicleShift {
                             start: VehiclePlace {
                                 time: shift.start.time.to_string(),
-                                // TODO [$5ecc340c0333270007090fc2]: utilise geocoding to get coordinates
+                                // TODO [#33]: utilise geocoding to get coordinates
                                 location: Location { lat: 0.0, lng: 0.0 },
                             },
                             end: Option::from(VehiclePlace {
@@ -130,7 +130,7 @@ impl DetailedRequest {
             })
             .collect();
 
-        // TODO [$5ecc340c0333270007090fc3]: explain single profile and provide valid inputs
+        // TODO [#34]: explain single profile and provide valid inputs
         let profile = Profile {
             name: "car".to_string(),
             profile_type: "car".to_string(),
@@ -225,7 +225,7 @@ impl SimpleTrip {
             .map(|(i, vehicle)| {
                 VehicleType {
                     type_id: i.to_string(),
-                    // TODO [$5ecc340c0333270007090fc4]: type_id: "car".to_string(), for some reason this needs to be unique?
+                    // TODO [#35]: type_id: "car".to_string(), for some reason this needs to be unique?
                     vehicle_ids: vec![i.to_string()],
                     profile: "normal_car".to_string(),
                     costs: VehicleCosts {
