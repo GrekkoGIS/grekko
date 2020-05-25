@@ -294,6 +294,27 @@ mod tests {
     }
 
     #[test]
+    fn test_deserialise_and_build_jobs() {
+        let request = r#"{"coordinate_vehicles": ["BS1 3AA", "BA2 1AA"],"coordinate_jobs": ["BS1 1AA", "BA2 1AA"]}"#;
+
+        let obj: SimpleTrip = serde_json::from_str(request).unwrap();
+
+        let jobs = obj.build_jobs();
+
+        let service = jobs[0].services.clone().unwrap();
+        assert_eq!(jobs[0].id, 0.to_string());
+        assert_eq!(service[0].places[0].location.lat, 51.449516);
+        assert_eq!(service[0].places[0].location.lng, -2.57837);
+        assert_eq!(service[0].places[0].duration, 7200.0);
+
+        assert_eq!(jobs[1].id, 1.to_string());
+        let service = jobs[1].services.clone().unwrap();
+        assert_eq!(service[0].places[0].location.lat, 51.375932);
+        assert_eq!(service[0].places[0].location.lng, -2.382291);
+        assert_eq!(service[0].places[0].duration, 7200.0);
+    }
+
+    #[test]
     fn test_convert_to_internal_problem() {
         let request = r#"
     {
