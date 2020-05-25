@@ -12,6 +12,7 @@ pub fn get_pragmatic_problem(problem_text: &str) -> Problem {
 
 pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {
     let mut buffer = String::new();
+    // TODO: don't be unsafe
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
 
     solution
@@ -27,13 +28,13 @@ pub fn create_solver(problem: Arc<CoreProblem>) -> Solver {
         .with_max_generations(Some(100))
         .with_max_time(Some(90))
         .build()
-        .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
+        .unwrap_or_else(|err| panic!("cannot build solver, error: {}", err))
 }
 
 pub fn solve_problem(solver: Solver) -> (CoreSolution, f64) {
     solver
         .solve()
-        .unwrap_or_else(|err| panic!("cannot solver problem: {}", err))
+        .unwrap_or_else(|err| panic!("cannot solve problem, error: {}", err))
 }
 
 #[cfg(test)]
@@ -1087,5 +1088,6 @@ mod tests {
         }
 
         println!("{:?}", context.solution);
+        assert!(true)
     }
 }
