@@ -53,7 +53,7 @@ pub fn bulk_set(reader: &mut Reader<File>) {
     let mut count = 0;
     let mut pipeline = redis::pipe();
 
-    // TODO use rayon to parallelise this
+    // TODO: use rayon to parallelise this
     records.for_each(|row| {
         let row = &row.unwrap();
         count += 1;

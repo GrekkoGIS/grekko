@@ -225,7 +225,7 @@ impl SimpleTrip {
             .map(|(i, vehicle)| {
                 VehicleType {
                     type_id: i.to_string(),
-                    // TODO: type_id: "car".to_string(),
+                    // TODO: type_id: "car".to_string(), for some reason this needs to be unique?
                     vehicle_ids: vec![i.to_string()],
                     profile: "normal_car".to_string(),
                     costs: VehicleCosts {
