@@ -26,6 +26,7 @@ pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
         .collect::<Vec<String>>()
         .join(COORDINATES_SEPARATOR);
 
+    // TODO: fix this
     redis::cmd("HSCAN")
         .arg(&["0", "MATCH", &coord_string])
         .query(&mut con)
