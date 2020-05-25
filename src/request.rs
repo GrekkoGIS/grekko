@@ -1,12 +1,12 @@
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use vrp_pragmatic::format::{Location, problem};
-use vrp_pragmatic::format::problem::{
-    JobPlace, JobTask, Profile, VehicleCosts, VehiclePlace, VehicleShift, VehicleType,
-};
 use vrp_pragmatic::format::problem::Fleet as ProblemFleet;
 use vrp_pragmatic::format::problem::Job as ProblemJob;
 use vrp_pragmatic::format::problem::Plan as ProblemPlan;
+use vrp_pragmatic::format::problem::{
+    JobPlace, JobTask, Profile, VehicleCosts, VehiclePlace, VehicleShift, VehicleType,
+};
+use vrp_pragmatic::format::{problem, Location};
 
 use crate::geocoding;
 use chrono::Duration;
@@ -188,7 +188,8 @@ impl SimpleTrip {
     fn build_jobs(&self) -> Vec<ProblemJob> {
         const JOB_LENGTH: f64 = 120.0;
 
-        self.coordinate_jobs.to_vec()
+        self.coordinate_jobs
+            .to_vec()
             .into_par_iter()
             .enumerate()
             .map(|(index, location)| {
@@ -217,7 +218,8 @@ impl SimpleTrip {
     }
 
     fn build_vehicles(&self) -> Vec<VehicleType> {
-        self.coordinate_vehicles.to_vec()
+        self.coordinate_vehicles
+            .to_vec()
             .into_par_iter()
             .enumerate()
             .map(|(i, vehicle)| {
@@ -272,15 +274,40 @@ mod tests {
 
         let vehicles = obj.build_vehicles();
 
-        assert_eq!(vehicles.first().unwrap().vehicle_ids.first().unwrap(), &0.to_string());
+        assert_eq!(
+            vehicles.first().unwrap().vehicle_ids.first().unwrap(),
+            &0.to_string()
+        );
         assert_eq!(vehicles.first().unwrap().type_id, 0.to_string());
         assert_eq!(vehicles.first().unwrap().profile, "normal_car".to_string());
         assert_eq!(vehicles.first().unwrap().costs.fixed, Some(22.0));
         assert_eq!(vehicles.first().unwrap().costs.distance, 0.0002);
         assert_eq!(vehicles.first().unwrap().costs.time, 0.004806);
         assert_eq!(vehicles.first().unwrap().capacity.first().unwrap(), &5);
-        assert_eq!(vehicles.first().unwrap().shifts.first().unwrap().start.location.lat, 51.455691);
-        assert_eq!(vehicles.first().unwrap().shifts.first().unwrap().start.location.lng, -2.586119);
+        assert_eq!(
+            vehicles
+                .first()
+                .unwrap()
+                .shifts
+                .first()
+                .unwrap()
+                .start
+                .location
+                .lat,
+            51.455691
+        );
+        assert_eq!(
+            vehicles
+                .first()
+                .unwrap()
+                .shifts
+                .first()
+                .unwrap()
+                .start
+                .location
+                .lng,
+            -2.586119
+        );
 
         assert_eq!(vehicles[1].vehicle_ids.first().unwrap(), &1.to_string());
         assert_eq!(vehicles[1].type_id, 1.to_string());
@@ -289,8 +316,14 @@ mod tests {
         assert_eq!(vehicles[1].costs.distance, 0.0002);
         assert_eq!(vehicles[1].costs.time, 0.004806);
         assert_eq!(vehicles[1].capacity.first().unwrap(), &5);
-        assert_eq!(vehicles[1].shifts.first().unwrap().start.location.lat, 51.375932);
-        assert_eq!(vehicles[1].shifts.first().unwrap().start.location.lng, -2.382291);
+        assert_eq!(
+            vehicles[1].shifts.first().unwrap().start.location.lat,
+            51.375932
+        );
+        assert_eq!(
+            vehicles[1].shifts.first().unwrap().start.location.lng,
+            -2.382291
+        );
     }
 
     #[test]

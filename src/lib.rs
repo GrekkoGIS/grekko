@@ -10,9 +10,9 @@ use vrp_pragmatic::format::solution::Solution;
 use warp::Filter;
 
 mod geocoding;
+mod redis_manager;
 mod request;
 mod solver;
-mod redis_manager;
 
 pub async fn start_server(addr: SocketAddr) {
     tokio::task::spawn(async {

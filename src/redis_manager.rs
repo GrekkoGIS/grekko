@@ -1,8 +1,8 @@
 use std::fs::File;
 
+use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 use csv::Reader;
 use redis::{Client, Commands, RedisResult};
-use crate::geocoding::{POSTCODE_TABLE_NAME, COORDINATES_SEPARATOR};
 
 // TODO: add concurrency to all of this once benchmarked
 fn get_redis_client() -> RedisResult<Client> {
@@ -26,7 +26,10 @@ pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
         .collect::<Vec<String>>()
         .join(COORDINATES_SEPARATOR);
 
-    redis::cmd("HSCAN").arg(&["0", "MATCH", &coord_string]).query(&mut con).ok()?
+    redis::cmd("HSCAN")
+        .arg(&["0", "MATCH", &coord_string])
+        .query(&mut con)
+        .ok()?
     // con.get(postcode).ok()?
 }
 
@@ -56,14 +59,23 @@ pub fn bulk_set(reader: &mut Reader<File>) {
         pipeline
             .hset(
                 POSTCODE_TABLE_NAME,
-                row.get(postcode_index).unwrap().to_string().replace(" ", ""),
-                format!("{};{}", row.get(lat_index).unwrap(), row.get(lon_index).unwrap()),
+                row.get(postcode_index)
+                    .unwrap()
+                    .to_string()
+                    .replace(" ", ""),
+                format!(
+                    "{};{}",
+                    row.get(lat_index).unwrap(),
+                    row.get(lon_index).unwrap()
+                ),
             )
             .ignore();
-    }
-    );
+    });
 
     let result: RedisResult<i32> = pipeline.query(&mut con);
 
-    println!("Finished bootstrapping {} postcodes, result: {:?}", count, result);
+    println!(
+        "Finished bootstrapping {} postcodes, result: {:?}",
+        count, result
+    );
 }

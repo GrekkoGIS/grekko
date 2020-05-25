@@ -41,12 +41,14 @@ pub fn solve_problem(solver: Solver) -> (CoreSolution, f64) {
 mod tests {
     use std::sync::Arc;
 
-    use crate::solver::{solve_problem, get_pragmatic_problem, get_pragmatic_solution, create_solver};
+    use crate::solver;
+    use crate::solver::{
+        create_solver, get_pragmatic_problem, get_pragmatic_solution, solve_problem,
+    };
     use vrp_core::solver::Builder;
     use vrp_pragmatic::checker::CheckerContext;
     use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
     use vrp_pragmatic::format::solution::Solution;
-    use crate::solver;
 
     #[test]
     fn test_pragmatic() {

@@ -1,9 +1,9 @@
 use std::fs::File;
 
+use crate::redis_manager;
 use csv::{ByteRecord, Reader};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
-use crate::{redis_manager};
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -16,7 +16,7 @@ pub enum GeocodingKind {
     COORDINATES(Vec<f64>),
 }
 
-cached!{
+cached! {
     POSTCODES;
     fn bootstrap_cache(table: String) -> bool = {
         match table.as_str() {
@@ -49,8 +49,18 @@ pub fn lookup_coordinates(query: String) -> Location {
     let coordinates: String = reverse_search(query.clone());
     let coordinates: Vec<&str> = coordinates.split(';').collect();
     Location {
-        lat: coordinates[0].parse().unwrap_or_else(|_| panic!("There weren't enough coordinates to extract latitude for postcode {}", query)),
-        lng: coordinates[1].parse().unwrap_or_else(|_| panic!("There weren't enough coordinates to extract longitude for postcode {}", query)),
+        lat: coordinates[0].parse().unwrap_or_else(|_| {
+            panic!(
+                "There weren't enough coordinates to extract latitude for postcode {}",
+                query
+            )
+        }),
+        lng: coordinates[1].parse().unwrap_or_else(|_| {
+            panic!(
+                "There weren't enough coordinates to extract longitude for postcode {}",
+                query
+            )
+        }),
     }
 }
 
@@ -62,7 +72,7 @@ pub fn reverse_search(query: String) -> String {
     if get_postcodes() {
         match reverse_search_cache(query) {
             Some(value) => value,
-            None => String::from("EMPTY") //TODO this is a poop error message
+            None => String::from("EMPTY"), //TODO this is a poop error message
         }
     } else {
         reverse_search_file(query)
@@ -143,7 +153,9 @@ pub fn read_geocoding_csv() -> Reader<File> {
 
 #[cfg(test)]
 mod tests {
-    use crate::geocoding::{bootstrap_cache, forward_search_file, reverse_search_file, get_postcodes};
+    use crate::geocoding::{
+        bootstrap_cache, forward_search_file, get_postcodes, reverse_search_file,
+    };
 
     #[test]
     fn test_search_postcode() {

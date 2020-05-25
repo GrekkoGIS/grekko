@@ -8,11 +8,10 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use grekko::start_server;
 
-
 pub mod geocoding;
+pub mod redis_manager;
 pub mod request;
 pub mod solver;
-pub mod redis_manager;
 
 #[tokio::main]
 async fn main() {
