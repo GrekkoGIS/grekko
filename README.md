@@ -1,6 +1,7 @@
 ![Build](https://github.com/AwesomeIbex/grekko/workflows/Build/badge.svg)
 [![codecov](https://codecov.io/gh/AwesomeIbex/grekko/branch/master/graph/badge.svg)](https://codecov.io/gh/AwesomeIbex/grekko)
 ![Lint](https://github.com/AwesomeIbex/grekko/workflows/Lint/badge.svg)
+![Audit-Check](https://github.com/AwesomeIbex/grekko/workflows/Audit-Check/badge.svg)
 
 ### Grekko
 A general purpose geoprocessing api that aspires to be safe, full featured and fun to use!
