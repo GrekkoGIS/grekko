@@ -1076,7 +1076,7 @@ mod tests {
         let (solution, _) = solve_problem(create_solver(problem.clone()));
 
         let solution: Solution =
-            solver::get_pragmatic_solution(&Arc::try_unwrap(problem.clone()).ok().unwrap(), &solution);
+            solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
         let problem: Problem = get_pragmatic_problem(problem_text);
 
         // TODO [#26]: use matrices potentially
