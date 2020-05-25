@@ -1,4 +1,6 @@
-use serde::{Deserialize, Serialize};
+#[macro_use]
+extern crate cached;
+
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -8,10 +10,15 @@ use vrp_pragmatic::format::solution::Solution;
 use warp::Filter;
 
 mod geocoding;
+mod redis_manager;
 mod request;
 mod solver;
 
 pub async fn start_server(addr: SocketAddr) {
+    tokio::task::spawn(async {
+        geocoding::get_postcodes();
+    });
+
     // TODO [#18]: potentially move path parameterized geocoding to query
     let forward_geocoding =
         warp::path!("geocoding" / "forward" / String).and_then(receive_and_search_coordinates);
@@ -43,13 +50,14 @@ pub async fn start_server(addr: SocketAddr) {
         .or(forward_geocoding)
         .or(reverse_geocoding);
 
+    println!("Server is starting on {}", addr);
     warp::serve(routes).run(addr).await;
 }
 
 pub async fn receive_and_search_coordinates(
     postcode: String,
 ) -> Result<impl warp::Reply, Infallible> {
-    let result = geocoding::search_coordinates(postcode.as_ref());
+    let result = geocoding::reverse_search(postcode);
     Ok(result)
 }
 
@@ -57,31 +65,32 @@ pub async fn receive_and_search_postcode(
     lat: f64,
     lon: f64,
 ) -> Result<impl warp::Reply, Infallible> {
-    let result = geocoding::search_postcode(vec![lat, lon]);
+    let result = geocoding::forward_search(vec![lat, lon]);
     Ok(result)
 }
 
-pub async fn trip(request: Problem) -> Result<impl warp::Reply, Infallible> {
+pub async fn trip(_request: Problem) -> Result<impl warp::Reply, Infallible> {
     // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")
 }
 
 pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {
+    // TODO: add some concurrency here
     // Convert simple trip to internal problem
-    let problem = trip.clone().convert_to_internal_problem();
+    let problem = trip.clone().convert_to_internal_problem().await;
     // Convert internal problem to a core problem
     let core_problem = problem.read_pragmatic();
     // Create an ARC for it
     let problem =
         Arc::new(core_problem.expect("Could not read a pragmatic problem into a core problem"));
     // Start building a solution
-    let (solution, _) = solver::create_builder(&problem);
+    let (solution, _) = solver::solve_problem(solver::create_solver(problem.clone()));
     // Convert that to a pragmatic solution
     let solution: Solution =
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
 
     // TODO [#20]: this context builder is silly, refactor it
-    let problem: Problem = trip.convert_to_internal_problem();
+    let problem: Problem = trip.convert_to_internal_problem().await;
     let context = CheckerContext::new(problem, None, solution);
 
     if let Err(err) = context.check() {
@@ -91,7 +100,7 @@ pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, 
     Ok(warp::reply::json(&context.solution))
 }
 
-pub async fn simple_trip_async(trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {
+pub async fn simple_trip_async(_trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {
     tokio::task::spawn(async { println!("Hey, i'm gonna be another task") });
     // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")

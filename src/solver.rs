@@ -2,7 +2,7 @@ use std::io::{BufReader, BufWriter};
 
 use std::sync::Arc;
 use vrp_core::models::{Problem as CoreProblem, Solution as CoreSolution};
-use vrp_core::solver::Builder;
+use vrp_core::solver::{Builder, Solver};
 use vrp_pragmatic::format::problem::{deserialize_problem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 
@@ -12,6 +12,7 @@ pub fn get_pragmatic_problem(problem_text: &str) -> Problem {
 
 pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {
     let mut buffer = String::new();
+    // TODO: don't be unsafe
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
 
     solution
@@ -22,21 +23,28 @@ pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) ->
     deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
 }
 
-pub fn create_builder(problem: &Arc<CoreProblem>) -> (CoreSolution, f64) {
-    Builder::default()
-        .with_max_generations(Some(10))
-        .with_problem(problem.clone())
+pub fn create_solver(problem: Arc<CoreProblem>) -> Solver {
+    Builder::new(problem)
+        .with_max_generations(Some(100))
+        .with_max_time(Some(90))
         .build()
-        .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
+        .unwrap_or_else(|err| panic!("cannot build solver, error: {}", err))
+}
+
+pub fn solve_problem(solver: Solver) -> (CoreSolution, f64) {
+    solver
         .solve()
-        .unwrap_or_else(|err| panic!("cannot solver problem: {}", err))
+        .unwrap_or_else(|err| panic!("cannot solve problem, error: {}", err))
 }
 
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
 
-    use crate::solver::{create_builder, get_pragmatic_problem, get_pragmatic_solution};
+    use crate::solver;
+    use crate::solver::{
+        create_solver, get_pragmatic_problem, get_pragmatic_solution, solve_problem,
+    };
     use vrp_core::solver::Builder;
     use vrp_pragmatic::checker::CheckerContext;
     use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
@@ -1067,10 +1075,10 @@ mod tests {
 
         let problem = String::from(problem_text).read_pragmatic();
         let problem = Arc::new(problem.expect("Problem could not be marshalled to an arc"));
-        let (solution, _) = create_builder(&problem);
+        let (solution, _) = solve_problem(create_solver(problem.clone()));
 
         let solution: Solution =
-            get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
+            solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
         let problem: Problem = get_pragmatic_problem(problem_text);
 
         // TODO [#26]: use matrices potentially
@@ -1082,5 +1090,6 @@ mod tests {
         }
 
         println!("{:?}", context.solution);
+        assert!(true)
     }
 }

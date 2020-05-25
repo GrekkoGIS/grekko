@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use vrp_pragmatic::format::problem::Fleet as ProblemFleet;
 use vrp_pragmatic::format::problem::Job as ProblemJob;
@@ -7,7 +8,8 @@ use vrp_pragmatic::format::problem::{
 };
 use vrp_pragmatic::format::{problem, Location};
 
-// imports both the trait and the derive macro
+use crate::geocoding;
+use chrono::Duration;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -96,9 +98,9 @@ impl DetailedRequest {
             .iter()
             .map(|vehicle| {
                 vrp_pragmatic::format::problem::VehicleType {
-                    type_id: "vehicle".to_owned(), //TODO: understand type id's in Vehicle Type
+                    type_id: "vehicle".to_owned(), // TODO: understand type id's in Vehicle Type
                     vehicle_ids: (*vehicle.vehicle_ids).to_owned(),
-                    profile: "car".to_string(), //TODO: enumerate the profile for the simple problem
+                    profile: "car".to_string(), // TODO: enumerate the profile for the simple problem
                     costs: vrp_pragmatic::format::problem::VehicleCosts {
                         fixed: Option::from(vehicle.costs.fixed),
                         distance: vehicle.costs.distance,
@@ -110,25 +112,25 @@ impl DetailedRequest {
                         .map(|shift| VehicleShift {
                             start: VehiclePlace {
                                 time: shift.start.time.to_string(),
-                                //TODO: utilise geocoding to get coordinates
+                                // TODO: utilise geocoding to get coordinates
                                 location: Location { lat: 0.0, lng: 0.0 },
                             },
                             end: Option::from(VehiclePlace {
                                 time: shift.end.time.to_string(),
                                 location: Location { lat: 0.0, lng: 0.0 },
                             }), //optional
-                            breaks: None, //TODO: expose breaks
+                            breaks: None, // TODO: expose breaks
                             reloads: None,
                         })
                         .collect(),
                     capacity: vec![vehicle.capacity],
-                    skills: None, //TODO: expose some skills
-                    limits: None, //TODO: more on all of these
+                    skills: None, // TODO: expose some skills
+                    limits: None, // TODO: more on all of these
                 }
             })
             .collect();
 
-        //TODO: explain single profile and provide valid inputs
+        // TODO: explain single profile and provide valid inputs
         let profile = Profile {
             name: "car".to_string(),
             profile_type: "car".to_string(),
@@ -157,26 +159,52 @@ pub struct SimpleTrip {
 }
 
 impl SimpleTrip {
-    pub fn convert_to_internal_problem(self) -> problem::Problem {
-        let mut counter: i32 = 0;
-        let jobs = self
-            .coordinate_jobs
-            .iter()
-            .map(|job| {
-                counter += 1;
+    pub async fn convert_to_internal_problem(&self) -> problem::Problem {
+        problem::Problem {
+            plan: ProblemPlan {
+                jobs: self.build_jobs(),
+                relations: None,
+            },
+            fleet: ProblemFleet {
+                vehicles: self.build_vehicles(),
+                profiles: vec![self.get_simple_profile()],
+            },
+            objectives: None,
+            config: None,
+        }
+    }
+
+    fn get_simple_profile(&self) -> Profile {
+        const FOURTY_MPH_IN_METRES_PER_SECOND: f64 = 17.0;
+        let normal_car = "normal_car".to_string();
+        let car_type = "car".to_string();
+        Profile {
+            name: normal_car,
+            profile_type: car_type,
+            speed: Some(FOURTY_MPH_IN_METRES_PER_SECOND), // TODO: average 40mph
+        }
+    }
+
+    fn build_jobs(&self) -> Vec<ProblemJob> {
+        const JOB_LENGTH: f64 = 120.0;
+
+        self.coordinate_jobs
+            .to_vec()
+            .into_par_iter()
+            .enumerate()
+            .map(|(index, location)| {
                 ProblemJob {
-                    id: counter.to_string(),
+                    id: index.to_string(),
                     // TODO [#21]: potentially switch on the type of job to decide whether its a pickup, delivery or service
                     pickups: None,
                     deliveries: None,
                     replacements: None,
                     services: Some(vec![JobTask {
                         places: vec![JobPlace {
-                            // TODO [#22]: convert to long and lat
-                            location: Location { lat: 0.0, lng: 0.0 },
+                            location: geocoding::lookup_coordinates(location),
                             // TODO [#23]: add constants to this duration
                             // TODO [#24]: parameterise duration for the simple type as an optional query parameter
-                            duration: 120.0 * 60.0,
+                            duration: Duration::minutes(JOB_LENGTH as i64).num_seconds() as f64,
                             times: None,
                         }],
                         demand: None,
@@ -186,28 +214,29 @@ impl SimpleTrip {
                     skills: None,
                 }
             })
-            .collect();
-        let mut counter: i32 = 0;
-        let vehicles = self
-            .coordinate_vehicles
-            .iter()
-            .map(|vehicle| {
-                counter += 1;
+            .collect()
+    }
+
+    fn build_vehicles(&self) -> Vec<VehicleType> {
+        self.coordinate_vehicles
+            .to_vec()
+            .into_par_iter()
+            .enumerate()
+            .map(|(i, vehicle)| {
                 VehicleType {
-                    type_id: counter.to_string(),
-                    // type_id: "car".to_string(),
-                    vehicle_ids: vec![counter.to_string()],
-                    profile: "car".to_string(),
+                    type_id: i.to_string(),
+                    // TODO: type_id: "car".to_string(), for some reason this needs to be unique?
+                    vehicle_ids: vec![i.to_string()],
+                    profile: "normal_car".to_string(),
                     costs: VehicleCosts {
-                        fixed: None,
-                        distance: 0.0,
-                        time: 0.0,
+                        fixed: Some(22.0),
+                        distance: 0.0002,
+                        time: 0.004806,
                     },
                     shifts: vec![VehicleShift {
-                        // TODO [#25]: convert to long and lat
                         start: VehiclePlace {
                             time: chrono::Utc::now().to_rfc3339(),
-                            location: Location { lat: 0.0, lng: 0.0 },
+                            location: geocoding::lookup_coordinates(vehicle),
                         },
                         end: None,
                         breaks: None,
@@ -218,34 +247,108 @@ impl SimpleTrip {
                     limits: None,
                 }
             })
-            .collect();
-        let profile = Profile {
-            name: "car".to_string(),
-            profile_type: "car".to_string(),
-            speed: None,
-        };
-
-        problem::Problem {
-            plan: ProblemPlan {
-                jobs,
-                relations: None,
-            },
-            fleet: ProblemFleet {
-                vehicles,
-                profiles: vec![profile],
-            },
-            objectives: None,
-            config: None,
-        }
+            .collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::request::DetailedRequest;
+    use crate::request::{DetailedRequest, SimpleTrip};
 
     #[test]
-    fn test() {
+    fn test_deserialise_and_convert() {
+        let request = r#"{"coordinate_vehicles": ["BS1 3AA", "BA2 1AA"],"coordinate_jobs": ["BS6 666", "BS7 777"]}"#;
+
+        let obj: SimpleTrip = serde_json::from_str(request).unwrap();
+        assert_eq!(obj.coordinate_vehicles.first().unwrap(), "BS1 3AA");
+        assert_eq!(obj.coordinate_vehicles[1], "BA2 1AA");
+        assert_eq!(obj.coordinate_jobs.first().unwrap(), "BS6 666");
+        assert_eq!(obj.coordinate_jobs[1], "BS7 777");
+    }
+
+    #[test]
+    fn test_deserialise_and_build_vehicles() {
+        let request = r#"{"coordinate_vehicles": ["BS1 3AA", "BA2 1AA"],"coordinate_jobs": ["BS6 666", "BS7 777"]}"#;
+
+        let obj: SimpleTrip = serde_json::from_str(request).unwrap();
+
+        let vehicles = obj.build_vehicles();
+
+        assert_eq!(
+            vehicles.first().unwrap().vehicle_ids.first().unwrap(),
+            &0.to_string()
+        );
+        assert_eq!(vehicles.first().unwrap().type_id, 0.to_string());
+        assert_eq!(vehicles.first().unwrap().profile, "normal_car".to_string());
+        assert_eq!(vehicles.first().unwrap().costs.fixed, Some(22.0));
+        assert_eq!(vehicles.first().unwrap().costs.distance, 0.0002);
+        assert_eq!(vehicles.first().unwrap().costs.time, 0.004806);
+        assert_eq!(vehicles.first().unwrap().capacity.first().unwrap(), &5);
+        assert_eq!(
+            vehicles
+                .first()
+                .unwrap()
+                .shifts
+                .first()
+                .unwrap()
+                .start
+                .location
+                .lat,
+            51.455691
+        );
+        assert_eq!(
+            vehicles
+                .first()
+                .unwrap()
+                .shifts
+                .first()
+                .unwrap()
+                .start
+                .location
+                .lng,
+            -2.586119
+        );
+
+        assert_eq!(vehicles[1].vehicle_ids.first().unwrap(), &1.to_string());
+        assert_eq!(vehicles[1].type_id, 1.to_string());
+        assert_eq!(vehicles[1].profile, "normal_car".to_string());
+        assert_eq!(vehicles[1].costs.fixed, Some(22.0));
+        assert_eq!(vehicles[1].costs.distance, 0.0002);
+        assert_eq!(vehicles[1].costs.time, 0.004806);
+        assert_eq!(vehicles[1].capacity.first().unwrap(), &5);
+        assert_eq!(
+            vehicles[1].shifts.first().unwrap().start.location.lat,
+            51.375932
+        );
+        assert_eq!(
+            vehicles[1].shifts.first().unwrap().start.location.lng,
+            -2.382291
+        );
+    }
+
+    #[test]
+    fn test_deserialise_and_build_jobs() {
+        let request = r#"{"coordinate_vehicles": ["BS1 3AA", "BA2 1AA"],"coordinate_jobs": ["BS1 1AA", "BA2 1AA"]}"#;
+
+        let obj: SimpleTrip = serde_json::from_str(request).unwrap();
+
+        let jobs = obj.build_jobs();
+
+        let service = jobs[0].services.clone().unwrap();
+        assert_eq!(jobs[0].id, 0.to_string());
+        assert_eq!(service[0].places[0].location.lat, 51.449516);
+        assert_eq!(service[0].places[0].location.lng, -2.57837);
+        assert_eq!(service[0].places[0].duration, 7200.0);
+
+        assert_eq!(jobs[1].id, 1.to_string());
+        let service = jobs[1].services.clone().unwrap();
+        assert_eq!(service[0].places[0].location.lat, 51.375932);
+        assert_eq!(service[0].places[0].location.lng, -2.382291);
+        assert_eq!(service[0].places[0].duration, 7200.0);
+    }
+
+    #[test]
+    fn test_convert_to_internal_problem() {
         let request = r#"
     {
   "plan": {
