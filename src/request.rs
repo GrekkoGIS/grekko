@@ -234,7 +234,7 @@ impl SimpleTrip {
                     shifts: vec![VehicleShift {
                         start: VehiclePlace {
                             time: chrono::Utc::now().to_rfc3339(),
-                            location: geocoding::lookup_coordinates(vehicle.to_string()),
+                            location: geocoding::lookup_coordinates(vehicle),
                         },
                         end: None,
                         breaks: None,

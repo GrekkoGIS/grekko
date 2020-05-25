@@ -22,9 +22,8 @@ pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) ->
     deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
 }
 
-pub fn create_solver(problem: &Arc<CoreProblem>) -> Solver {
-    Builder::default()
-        .with_problem(problem.clone())
+pub fn create_solver(problem: Arc<CoreProblem>) -> Solver {
+    Builder::new(problem)
         .with_max_generations(Some(100))
         .with_max_time(Some(90))
         .build()
@@ -1072,10 +1071,10 @@ mod tests {
 
         let problem = String::from(problem_text).read_pragmatic();
         let problem = Arc::new(problem.expect("Problem could not be marshalled to an arc"));
-        let (solution, _) = solve_problem(&create_solver(&problem));
+        let (solution, _) = solve_problem(create_solver(problem.clone()));
 
         let solution: Solution =
-            get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
+            get_pragmatic_solution(&Arc::try_unwrap(problem.clone()).ok().unwrap(), &solution);
         let problem: Problem = get_pragmatic_problem(problem_text);
 
         // TODO [#26]: use matrices potentially

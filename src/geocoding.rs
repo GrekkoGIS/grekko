@@ -3,7 +3,6 @@ use std::fs::File;
 use csv::{ByteRecord, Reader};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
-use cached::macros::*;
 use crate::{redis_manager};
 
 #[derive(Deserialize)]
@@ -20,10 +19,8 @@ pub enum GeocodingKind {
 cached!{
     POSTCODES;
     fn bootstrap_cache(table: String) -> bool = {
-        let table = table.to_string();
-        let string_postcode_table = POSTCODE_TABLE_NAME.to_string();
-        match table {
-            string_postcode_table => {
+        match table.as_str() {
+            POSTCODE_TABLE_NAME => {
                 // I don't want to read these again to UTF so using a known const
                 let postcode_csv_size = 2628568;
                 let mut reader = crate::geocoding::read_geocoding_csv();
@@ -52,8 +49,8 @@ pub fn lookup_coordinates(query: String) -> Location {
     let coordinates: String = reverse_search(query.clone());
     let coordinates: Vec<&str> = coordinates.split(';').collect();
     Location {
-        lat: coordinates[0].parse().expect(format!("There weren't enough coordinates to extract latitude for postcode {}", query).as_str()),
-        lng: coordinates[1].parse().expect(format!("There weren't enough coordinates to extract longitude for postcode {}", query).as_str()),
+        lat: coordinates[0].parse().unwrap_or_else(|_| panic!("There weren't enough coordinates to extract latitude for postcode {}", query)),
+        lng: coordinates[1].parse().unwrap_or_else(|_| panic!("There weren't enough coordinates to extract longitude for postcode {}", query)),
     }
 }
 
