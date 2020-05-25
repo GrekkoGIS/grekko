@@ -45,6 +45,7 @@ mod tests {
     use vrp_pragmatic::checker::CheckerContext;
     use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
     use vrp_pragmatic::format::solution::Solution;
+    use crate::solver;
 
     #[test]
     fn test_pragmatic() {
@@ -1074,7 +1075,7 @@ mod tests {
         let (solution, _) = solve_problem(create_solver(problem.clone()));
 
         let solution: Solution =
-            get_pragmatic_solution(&Arc::try_unwrap(problem.clone()).ok().unwrap(), &solution);
+            solver::get_pragmatic_solution(&Arc::try_unwrap(problem.clone()).ok().unwrap(), &solution);
         let problem: Problem = get_pragmatic_problem(problem_text);
 
         // TODO [#26]: use matrices potentially

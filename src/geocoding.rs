@@ -144,13 +144,12 @@ pub fn read_geocoding_csv() -> Reader<File> {
 #[cfg(test)]
 mod tests {
     use crate::geocoding::{bootstrap_cache, forward_search_file, reverse_search_file, get_postcodes};
-    use grekko::get_postcodes;
 
     #[test]
     fn test_search_postcode() {
         let coordinates = vec![57.099011, -2.252854];
         let postcode = forward_search_file(coordinates);
-        assert_eq!(postcode, "AB10AJ")
+        assert_eq!(postcode, "AB1 0AJ")
     }
 
     #[test]
