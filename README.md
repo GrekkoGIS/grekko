@@ -25,6 +25,7 @@ TODO: add depth to this description
 
 - Haversine
 - Euclidean
+- Various other algorithms
 
 Brain dump of otherwise stuff to add:
 - gRPC & REST
@@ -32,5 +33,7 @@ Brain dump of otherwise stuff to add:
 - async workflow
 - finish swagger
 - deploy
+- gitops
+- firecracker
 
 Add creds to libraries, data stuff
