@@ -87,7 +87,7 @@ pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, 
     let (solution, _) = solver::solve_problem(solver::create_solver(problem.clone()));
     // Convert that to a pragmatic solution
     let solution: Solution =
-        solver::get_pragmatic_solution(&Arc::try_unwrap(problem.clone()).ok().unwrap(), &solution);
+        solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
 
     // TODO [#20]: this context builder is silly, refactor it
     let problem: Problem = trip.convert_to_internal_problem().await;
