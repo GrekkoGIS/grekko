@@ -251,10 +251,50 @@ impl SimpleTrip {
 
 #[cfg(test)]
 mod tests {
-    use crate::request::DetailedRequest;
+    use crate::request::{DetailedRequest, SimpleTrip};
 
     #[test]
-    fn test() {
+    fn test_deserialise_and_convert() {
+        let request = r#"{"coordinate_vehicles": ["BS1 3AA", "BA2 1AA"],"coordinate_jobs": ["BS6 666", "BS7 777"]}"#;
+
+        let obj: SimpleTrip = serde_json::from_str(request).unwrap();
+        assert_eq!(obj.coordinate_vehicles.first().unwrap(), "BS1 3AA");
+        assert_eq!(obj.coordinate_vehicles[1], "BA2 1AA");
+        assert_eq!(obj.coordinate_jobs.first().unwrap(), "BS6 666");
+        assert_eq!(obj.coordinate_jobs[1], "BS7 777");
+    }
+
+    #[test]
+    fn test_deserialise_and_build_vehicles() {
+        let request = r#"{"coordinate_vehicles": ["BS1 3AA", "BA2 1AA"],"coordinate_jobs": ["BS6 666", "BS7 777"]}"#;
+
+        let obj: SimpleTrip = serde_json::from_str(request).unwrap();
+
+        let vehicles = obj.build_vehicles();
+
+        assert_eq!(vehicles.first().unwrap().vehicle_ids.first().unwrap(), &0.to_string());
+        assert_eq!(vehicles.first().unwrap().type_id, 0.to_string());
+        assert_eq!(vehicles.first().unwrap().profile, "normal_car".to_string());
+        assert_eq!(vehicles.first().unwrap().costs.fixed, Some(22.0));
+        assert_eq!(vehicles.first().unwrap().costs.distance, 0.0002);
+        assert_eq!(vehicles.first().unwrap().costs.time, 0.004806);
+        assert_eq!(vehicles.first().unwrap().capacity.first().unwrap(), &5);
+        assert_eq!(vehicles.first().unwrap().shifts.first().unwrap().start.location.lat, 51.455691);
+        assert_eq!(vehicles.first().unwrap().shifts.first().unwrap().start.location.lng, -2.586119);
+
+        assert_eq!(vehicles[1].vehicle_ids.first().unwrap(), &1.to_string());
+        assert_eq!(vehicles[1].type_id, 1.to_string());
+        assert_eq!(vehicles[1].profile, "normal_car".to_string());
+        assert_eq!(vehicles[1].costs.fixed, Some(22.0));
+        assert_eq!(vehicles[1].costs.distance, 0.0002);
+        assert_eq!(vehicles[1].costs.time, 0.004806);
+        assert_eq!(vehicles[1].capacity.first().unwrap(), &5);
+        assert_eq!(vehicles[1].shifts.first().unwrap().start.location.lat, 51.375932);
+        assert_eq!(vehicles[1].shifts.first().unwrap().start.location.lng, -2.382291);
+    }
+
+    #[test]
+    fn test_convert_to_internal_problem() {
         let request = r#"
     {
   "plan": {
