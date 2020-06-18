@@ -39,9 +39,12 @@ pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Option<T> {
     let client: Client = get_redis_client().ok()?;
     let mut con = client.get_connection().ok()?;
 
-    let result: String = con.hget(table, key).ok().expect("");
+    let result: Option<String> = con.hget(table, key).ok();
 
-    serde_json::from_str(result.as_str()).unwrap()
+    match result {
+        None => None,
+        Some(res) => serde_json::from_str(res.as_str()).expect("Failed to deserialize value"),
+    }
 }
 
 // pub fn set<T>(table: &str, key: &str, value: T) -> Option<String> {
