@@ -90,7 +90,7 @@ pub async fn trip(_request: Problem) -> Result<impl warp::Reply, Infallible> {
 }
 
 pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {
-    // TODO: add some concurrency here
+    // TODO [#29]: add some concurrency here
     // Convert simple trip to internal problem
     let problem = trip.clone().convert_to_internal_problem().await;
     // Convert internal problem to a core problem

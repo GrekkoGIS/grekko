@@ -4,7 +4,7 @@ use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 use csv::Reader;
 use redis::{Client, Commands, RedisResult};
 
-// TODO: add concurrency to all of this once benchmarked
+// TODO [#30]: add concurrency to all of this once benchmarked
 fn get_redis_client() -> RedisResult<Client> {
     redis::Client::open("redis://127.0.0.1/")
 }
@@ -26,7 +26,7 @@ pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
         .collect::<Vec<String>>()
         .join(COORDINATES_SEPARATOR);
 
-    // TODO: fix this
+    // TODO [#31]: fix this
     redis::cmd("HSCAN")
         .arg(&["0", "MATCH", &coord_string])
         .query(&mut con)
@@ -53,7 +53,7 @@ pub fn bulk_set(reader: &mut Reader<File>) {
     let mut count = 0;
     let mut pipeline = redis::pipe();
 
-    // TODO: use rayon to parallelise this
+    // TODO [#32]: use rayon to parallelise this
     records.for_each(|row| {
         let row = &row.unwrap();
         count += 1;
