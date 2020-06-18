@@ -4,16 +4,20 @@ extern crate cached;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
+
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::Solution;
-use warp::Filter;
+use warp::{Error, Filter, reject, Rejection};
 use warp::http::Method;
+
+use crate::user::{User, UserFail};
 
 mod geocoding;
 mod redis_manager;
 mod request;
 mod solver;
+mod user;
 
 pub async fn start_server(addr: SocketAddr) {
     tokio::task::spawn(async {
@@ -38,6 +42,11 @@ pub async fn start_server(addr: SocketAddr) {
             .and_then(receive_and_search_postcode)
             .with(&cors);
 
+    let user_geocoding =
+        warp::path!("user" / String)
+            .and_then(get_user_geocodings)
+            .with(&cors);
+
     let simple_trip = warp::path!("routing" / "solver" / "simple")
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 16))
@@ -60,6 +69,7 @@ pub async fn start_server(addr: SocketAddr) {
         .with(&cors);
 
     let routes = trip
+        .or(user_geocoding)
         .or(simple_trip)
         .or(simple_trip_async)
         .or(forward_geocoding)
@@ -82,6 +92,16 @@ pub async fn receive_and_search_postcode(
 ) -> Result<impl warp::Reply, Infallible> {
     let result = geocoding::forward_search(vec![lat, lon]);
     Ok(result)
+}
+
+pub async fn get_user_geocodings(
+    user: String
+) -> Result<impl warp::Reply, Rejection> {
+    let result = redis_manager::get::<user::User>("USERS", user.as_str());
+    return match result {
+        None => Err(reject::custom(UserFail::new())),
+        Some(res) => Ok(res),
+    };
 }
 
 pub async fn trip(_request: Problem) -> Result<impl warp::Reply, Infallible> {

@@ -3,6 +3,7 @@ use std::fs::File;
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 use csv::Reader;
 use redis::{Client, Commands, RedisResult};
+use serde::de::DeserializeOwned;
 
 // TODO [#30]: add concurrency to all of this once benchmarked
 fn get_redis_client() -> RedisResult<Client> {
@@ -33,6 +34,27 @@ pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
         .ok()?
     // con.get(postcode).ok()?
 }
+
+pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Option<T> {
+    let client: Client = get_redis_client().ok()?;
+    let mut con = client.get_connection().ok()?;
+
+    let result: String = con.hget(table, key).ok().expect("");
+
+    serde_json::from_str(result.as_str()).unwrap()
+}
+
+// pub fn set<T>(table: &str, key: &str, value: T) -> Option<String> {
+//     let client: Client = get_redis_client().ok()?;
+//     let mut con = client.get_connection().ok()?;
+//
+//     let result_string = redis::cmd("HSET")
+//         .arg(&[table, key, serde_json::to_string(&value)])
+//         .query(&mut con)
+//         .ok()?;
+//
+//     Ok(result_string)?
+// }
 
 pub fn count(table: &str) -> i32 {
     let client: Client = get_redis_client().unwrap();
