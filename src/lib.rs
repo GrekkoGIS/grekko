@@ -8,6 +8,7 @@ use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::Solution;
 use warp::Filter;
+use warp::http::Method;
 
 mod geocoding;
 mod redis_manager;
@@ -19,30 +20,44 @@ pub async fn start_server(addr: SocketAddr) {
         geocoding::get_postcodes();
     });
 
+    let cors = warp::cors()
+        .allow_methods(&[
+            Method::GET,
+            Method::POST,
+            Method::DELETE,
+        ]);
+
     // TODO [#18]: potentially move path parameterized geocoding to query
     let forward_geocoding =
-        warp::path!("geocoding" / "forward" / String).and_then(receive_and_search_coordinates);
+        warp::path!("geocoding" / "forward" / String)
+            .and_then(receive_and_search_coordinates)
+            .with(&cors);
 
     let reverse_geocoding =
-        warp::path!("geocoding" / "reverse" / f64 / f64).and_then(receive_and_search_postcode);
+        warp::path!("geocoding" / "reverse" / f64 / f64)
+            .and_then(receive_and_search_postcode)
+            .with(&cors);
 
     let simple_trip = warp::path!("routing" / "solver" / "simple")
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json::<request::SimpleTrip>())
-        .and_then(simple_trip);
+        .and_then(simple_trip)
+        .with(&cors);
 
     let simple_trip_async = warp::path!("routing" / "solver" / "simple" / "async")
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json::<request::SimpleTrip>())
-        .and_then(simple_trip_async);
+        .and_then(simple_trip_async)
+        .with(&cors);
 
     let trip = warp::path!("routing" / "solver")
         // TODO [#19]: fix compression .with(warp::compression::gzip())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json())
-        .and_then(trip);
+        .and_then(trip)
+        .with(&cors);
 
     let routes = trip
         .or(simple_trip)
