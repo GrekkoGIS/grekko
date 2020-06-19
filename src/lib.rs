@@ -118,8 +118,8 @@ pub async fn set_user_geocodings(
     let id = id.as_str();
     let result = redis_manager::set::<user::User>("USERS", id, user);
     return match result {
-        true => Ok(warp::reply::json(&String::from(""))),
-        false => Err(reject())
+        Some(value) => Ok(warp::reply::json(&String::from(""))),
+        None => Err(reject())
     };
 }
 
