@@ -8,7 +8,7 @@ use serde::export::fmt;
 pub struct User {
     pub id: String,
     forward_geocoding: Vec<String>,
-    reverse_geocoding: Vec<f64>,
+    reverse_geocoding: Vec<Vec<f64>>,
     simple_routes: Vec<String>
 }
 

@@ -72,18 +72,6 @@ pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<S
     }
 }
 
-// pub fn set<T>(table: &str, key: &str, value: T) -> Option<String> {
-//     let client: Client = get_redis_client().ok()?;
-//     let mut con = client.get_connection().ok()?;
-//
-//     let result_string = redis::cmd("HSET")
-//         .arg(&[table, key, serde_json::to_string(&value)])
-//         .query(&mut con)
-//         .ok()?;
-//
-//     Ok(result_string)?
-// }
-
 pub fn count(table: &str) -> i32 {
     let client: Client = get_redis_client().unwrap();
     let mut con = client.get_connection().unwrap();
