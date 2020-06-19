@@ -47,6 +47,13 @@ pub async fn start_server(addr: SocketAddr) {
             .and_then(get_user_geocodings)
             .with(&cors);
 
+    let create_user = warp::path!("user")
+        .and(warp::post())
+        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::json::<user::User>())
+        .and_then(set_user_geocodings)
+        .with(&cors);
+
     let simple_trip = warp::path!("routing" / "solver" / "simple")
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 16))
@@ -70,6 +77,7 @@ pub async fn start_server(addr: SocketAddr) {
 
     let routes = trip
         .or(user_geocoding)
+        .or(create_user)
         .or(simple_trip)
         .or(simple_trip_async)
         .or(forward_geocoding)
@@ -100,7 +108,18 @@ pub async fn get_user_geocodings(
     let result = redis_manager::get::<user::User>("USERS", user.as_str());
     return match result {
         None => Err(reject::custom(UserFail::new())),
-        Some(res) => Ok(res),
+        Some(res) => Ok(warp::reply::json(&res)),
+    };
+}
+pub async fn set_user_geocodings(
+    user: User
+) -> Result<impl warp::Reply, Rejection> {
+    let id = user.id.clone();
+    let id = id.as_str();
+    let result = redis_manager::set::<user::User>("USERS", id, user);
+    return match result {
+        true => Ok(warp::reply::json(&String::from(""))),
+        false => Err(reject())
     };
 }
 

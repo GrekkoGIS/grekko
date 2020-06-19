@@ -1,18 +1,27 @@
 use warp::reject;
 use warp::reply::Response;
 use serde::{Deserialize, Serialize};
+use std::path::Display;
+use serde::export::fmt;
 
 #[derive(Serialize, Deserialize)]
 pub struct User {
-    id: String,
+    pub id: String,
     forward_geocoding: Vec<String>,
     reverse_geocoding: Vec<f64>,
-    simple_routes: Option<Vec<String>>,
+    simple_routes: Vec<String>
 }
 
 impl warp::reply::Reply for User {
     fn into_response(self) -> Response {
         Response::new(serde_json::to_string(&self).expect("Unable to serialise User").into())
+    }
+}
+
+impl fmt::Display for User {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "ID: {} ForwardGeocoding: {:?}, ReverseGeocoding: {:?}, SimpleRoutes: {:?}",
+               self.id, self.forward_geocoding, self.reverse_geocoding, self.simple_routes)
     }
 }
 

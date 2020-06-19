@@ -2,8 +2,10 @@ use std::fs::File;
 
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 use csv::Reader;
-use redis::{Client, Commands, RedisResult};
+use redis::{Client, Commands, RedisResult, RedisError};
 use serde::de::DeserializeOwned;
+use serde::export::fmt::Display;
+use serde::Serialize;
 
 // TODO [#30]: add concurrency to all of this once benchmarked
 fn get_redis_client() -> RedisResult<Client> {
@@ -44,6 +46,28 @@ pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Option<T> {
     match result {
         None => None,
         Some(res) => serde_json::from_str(res.as_str()).expect("Failed to deserialize value"),
+    }
+}
+
+pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> bool {
+    let client: Client = get_redis_client().expect("Unable to get a redis client");
+    let mut con = client.get_connection().expect("Unable to get a connection");
+
+    let result: RedisResult<i32> = con.hset(
+        table,
+        key,
+        serde_json::to_string(&value).expect("Unable to serialize value")
+    );
+
+    match result {
+        Err(err) => {
+            eprintln!("Couldn't write to redis, reason: {:?}", err.detail());
+            false
+        },
+        Ok(res) => {
+            println!("Wrote {} to table: {} with key {} and result {}", value, table, key, res);
+            true
+        },
     }
 }
 
