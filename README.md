@@ -36,5 +36,6 @@ Brain dump of otherwise stuff to add:
 - deploy
 - gitops
 - firecracker
+- space
 
 Add creds to libraries, data stuff
