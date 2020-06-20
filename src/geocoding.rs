@@ -1,9 +1,10 @@
 use std::fs::File;
 
-use crate::redis_manager;
 use csv::{ByteRecord, Reader};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
+
+use crate::redis_manager;
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -31,7 +32,8 @@ cached! {
                     redis_manager::bulk_set(&mut reader);
                     Some(())
                 } else {
-                    None
+                    println!("Postcode cache was already bootstrapped");
+                    Some(())
                 }
             }
             _ => {
@@ -67,7 +69,9 @@ pub fn lookup_coordinates(query: String) -> Location {
 }
 
 pub fn get_postcodes() -> bool {
-    bootstrap_cache(POSTCODE_TABLE_NAME.to_string()) == Some(())
+    let bootstrapped = bootstrap_cache(POSTCODE_TABLE_NAME.to_string());
+    println!("{:?}", bootstrapped);
+    bootstrapped == Some(())
 }
 
 pub fn reverse_search(query: String) -> String {
@@ -174,6 +178,6 @@ mod tests {
 
     #[test]
     fn test_bootstrap_postcode_cache() {
-        get_postcodes();
+        assert_eq!(get_postcodes(), true);
     }
 }

@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use csv::Reader;
-use redis::{Client, Commands, Connection, RedisResult, RedisError};
+use redis::{Client, Commands, Connection, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
