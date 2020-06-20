@@ -153,7 +153,7 @@ mod tests {
         let mut reader = csv::Reader::from_path(&file_name).expect("Issue reading test.csv");
         let set_count = bulk_set(&mut reader);
         fs::remove_file(&file_name).unwrap();
-        assert_eq!(set_count, 1);
+        assert_eq!(set_count, Some(()));
     }
 
     #[test]
@@ -166,21 +166,21 @@ mod tests {
         writer.write_record(&["TEST1", "0.0", "0.0"]).expect("Unable to write test record");
         let mut reader = csv::Reader::from_path(&file_name).expect("Issue reading test.csv");
         bulk_set(&mut reader);
-        let table_count = count("POSTCODES");
+        let table_count = count("POSTCODE");
         fs::remove_file(&file_name).unwrap();
         assert_ne!(table_count, 0);
     }
 
     #[test]
     fn test_count_0() {
-        let table_count = count("POSTCODES");
+        let table_count = count("TEST");
         assert_eq!(table_count, 0);
     }
 
     #[test]
     fn test_set() {
         let result = set("TEST_TABLE", "TEST", "TEST").unwrap();
-        assert_eq!(result, "Wrote TEST to table: TEST_TABLE with key TEST and result 1");
+        assert_eq!(result, "Wrote TEST to table: TEST_TABLE with key TEST and result 0");
     }
 
     #[test]
