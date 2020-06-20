@@ -7,13 +7,15 @@ on:
     branches: [ master ]
 
 jobs:
-  cleanup-runs:
+
+  cancel:
+    name: Cancel Previous Runs
     runs-on: ubuntu-latest
     steps:
-      - uses: rokroskar/workflow-run-cleanup-action@master
+      - name: cancel running workflows
+        uses: everphone-gmbh/cancel-previous-workflows@v5
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-    if: "!startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/master'"
+          GITHUB_TOKEN: ${{ github.token }}
 
   build:
     runs-on: ubuntu-latest
