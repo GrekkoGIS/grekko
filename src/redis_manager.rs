@@ -2,14 +2,14 @@ use std::fs::File;
 
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 use csv::Reader;
-use redis::{Client, Commands, RedisResult, Connection};
+use redis::{Client, Commands, Connection, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
 
-
 fn connect_and_query<F, T>(mut action: F) -> Option<T>
-    where F: FnMut(Connection) -> Option<T>
+where
+    F: FnMut(Connection) -> Option<T>,
 {
     let client: Client = get_redis_client().ok()?;
     let con = client.get_connection().ok()?;
@@ -22,9 +22,7 @@ fn get_redis_client() -> RedisResult<Client> {
 }
 
 pub fn get_coordinates(postcode: &str) -> Option<String> {
-    connect_and_query(|mut connection| {
-        connection.hget(POSTCODE_TABLE_NAME, postcode).ok()?
-    })
+    connect_and_query(|mut connection| connection.hget(POSTCODE_TABLE_NAME, postcode).ok()?)
 }
 
 pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
@@ -44,9 +42,8 @@ pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
 }
 
 pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Option<T> {
-    let result: Option<String> = connect_and_query(|mut connection| {
-        connection.hget(table, key).ok()?
-    });
+    let result: Option<String> =
+        connect_and_query(|mut connection| connection.hget(table, key).ok()?);
 
     match result {
         None => None,
@@ -61,19 +58,22 @@ pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<S
     let result: RedisResult<i32> = con.hset(
         table,
         key,
-        serde_json::to_string(&value).expect("Unable to serialize value")
+        serde_json::to_string(&value).expect("Unable to serialize value"),
     );
 
     match result {
         Err(err) => {
             eprintln!("Couldn't write to redis, reason: {:?}", err.detail());
             None
-        },
+        }
         Ok(res) => {
-            let msg = format!("Wrote {} to table: {} with key {} and result {}", value, table, key, res);
+            let msg = format!(
+                "Wrote {} to table: {} with key {} and result {}",
+                value, table, key, res
+            );
             println!("{}", msg);
             Some(msg)
-        },
+        }
     }
 }
 

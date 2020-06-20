@@ -8,8 +8,8 @@ use std::sync::Arc;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::Solution;
-use warp::{Filter, reject, Rejection};
 use warp::http::Method;
+use warp::{reject, Filter, Rejection};
 
 use crate::user::{User, UserFail};
 
@@ -24,28 +24,20 @@ pub async fn start_server(addr: SocketAddr) {
         geocoding::get_postcodes();
     });
 
-    let cors = warp::cors()
-        .allow_methods(&[
-            Method::GET,
-            Method::POST,
-            Method::DELETE,
-        ]);
+    let cors = warp::cors().allow_methods(&[Method::GET, Method::POST, Method::DELETE]);
 
     // TODO [#18]: potentially move path parameterized geocoding to query
-    let forward_geocoding =
-        warp::path!("geocoding" / "forward" / String)
-            .and_then(receive_and_search_coordinates)
-            .with(&cors);
+    let forward_geocoding = warp::path!("geocoding" / "forward" / String)
+        .and_then(receive_and_search_coordinates)
+        .with(&cors);
 
-    let reverse_geocoding =
-        warp::path!("geocoding" / "reverse" / f64 / f64)
-            .and_then(receive_and_search_postcode)
-            .with(&cors);
+    let reverse_geocoding = warp::path!("geocoding" / "reverse" / f64 / f64)
+        .and_then(receive_and_search_postcode)
+        .with(&cors);
 
-    let user_geocoding =
-        warp::path!("user" / String)
-            .and_then(get_user_geocodings)
-            .with(&cors);
+    let user_geocoding = warp::path!("user" / String)
+        .and_then(get_user_geocodings)
+        .with(&cors);
 
     let create_user = warp::path!("user")
         .and(warp::post())
@@ -102,24 +94,20 @@ pub async fn receive_and_search_postcode(
     Ok(result)
 }
 
-pub async fn get_user_geocodings(
-    user: String
-) -> Result<impl warp::Reply, Rejection> {
+pub async fn get_user_geocodings(user: String) -> Result<impl warp::Reply, Rejection> {
     let result = redis_manager::get::<user::User>("USERS", user.as_str());
     return match result {
         None => Err(reject::custom(UserFail::new())),
         Some(res) => Ok(warp::reply::json(&res)),
     };
 }
-pub async fn set_user_geocodings(
-    user: User
-) -> Result<impl warp::Reply, Rejection> {
+pub async fn set_user_geocodings(user: User) -> Result<impl warp::Reply, Rejection> {
     let id = user.id.clone();
     let id = id.as_str();
     let result = redis_manager::set::<user::User>("USERS", id, user);
     return match result {
         Some(value) => Ok(warp::reply::json(&String::from(value))),
-        None => Err(reject())
+        None => Err(reject()),
     };
 }
 
