@@ -1,7 +1,6 @@
 use warp::reject;
 use warp::reply::Response;
 use serde::{Deserialize, Serialize};
-use std::path::Display;
 use serde::export::fmt;
 
 #[derive(Serialize, Deserialize)]

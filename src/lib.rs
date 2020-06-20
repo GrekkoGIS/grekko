@@ -8,7 +8,7 @@ use std::sync::Arc;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::Solution;
-use warp::{Error, Filter, reject, Rejection};
+use warp::{Filter, reject, Rejection};
 use warp::http::Method;
 
 use crate::user::{User, UserFail};
@@ -118,7 +118,7 @@ pub async fn set_user_geocodings(
     let id = id.as_str();
     let result = redis_manager::set::<user::User>("USERS", id, user);
     return match result {
-        Some(value) => Ok(warp::reply::json(&String::from(""))),
+        Some(value) => Ok(warp::reply::json(&String::from(value))),
         None => Err(reject())
     };
 }

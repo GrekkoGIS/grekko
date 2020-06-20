@@ -2,10 +2,19 @@ use std::fs::File;
 
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 use csv::Reader;
-use redis::{Client, Commands, RedisResult};
+use redis::{Client, Commands, RedisResult, Connection};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
+
+
+fn connect_and_query<F, T>(mut action: F) -> Option<T>
+    where F: FnMut(Connection) -> Option<T>
+{
+    let client: Client = get_redis_client().ok()?;
+    let con = client.get_connection().ok()?;
+    action(con)
+}
 
 // TODO [#30]: add concurrency to all of this once benchmarked
 fn get_redis_client() -> RedisResult<Client> {
@@ -13,16 +22,12 @@ fn get_redis_client() -> RedisResult<Client> {
 }
 
 pub fn get_coordinates(postcode: &str) -> Option<String> {
-    let client: Client = get_redis_client().ok()?;
-    let mut con = client.get_connection().ok()?;
-
-    con.hget(POSTCODE_TABLE_NAME, postcode).ok()?
+    connect_and_query(|mut connection| {
+        connection.hget(POSTCODE_TABLE_NAME, postcode).ok()?
+    })
 }
 
 pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
-    let client: Client = get_redis_client().ok()?;
-    let mut con = client.get_connection().ok()?;
-
     let coord_string = coordinates
         .iter()
         .map(|coord| coord.to_string())
@@ -30,18 +35,18 @@ pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
         .join(COORDINATES_SEPARATOR);
 
     // TODO [#31]: fix this
-    redis::cmd("HSCAN")
-        .arg(&["0", "MATCH", &coord_string])
-        .query(&mut con)
-        .ok()?
-    // con.get(postcode).ok()?
+    connect_and_query(|mut connection| {
+        redis::cmd("HSCAN")
+            .arg(&["0", "MATCH", &coord_string])
+            .query(&mut connection)
+            .ok()?
+    })
 }
 
 pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Option<T> {
-    let client: Client = get_redis_client().ok()?;
-    let mut con = client.get_connection().ok()?;
-
-    let result: Option<String> = con.hget(table, key).ok();
+    let result: Option<String> = connect_and_query(|mut connection| {
+        connection.hget(table, key).ok()?
+    });
 
     match result {
         None => None,
