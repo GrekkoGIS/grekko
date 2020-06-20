@@ -9,8 +9,8 @@ use serde::Serialize;
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 
 fn connect_and_query<F, T>(mut action: F) -> Option<T>
-    where
-        F: FnMut(Connection) -> Option<T>,
+where
+    F: FnMut(Connection) -> Option<T>,
 {
     let client: Client = get_redis_client().ok()?;
     let con = client.get_connection().ok()?;
@@ -126,11 +126,11 @@ pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
                 count, res
             );
             Some(())
-        },
+        }
         Err(err) => {
             println!("Failed to write to postcodes, error: {}", err);
             None
-        },
+        }
     }
 }
 
@@ -149,7 +149,9 @@ mod tests {
         let test_file = File::create(&file_name).expect("Unable to create ./test.csv");
         test_file.set_len(0);
         let mut writer = csv::Writer::from_path(&file_name).expect("Issue reading test.csv");
-        writer.write_record(&["TEST1", "0.0", "0.0"]).expect("Unable to write test record");
+        writer
+            .write_record(&["TEST1", "0.0", "0.0"])
+            .expect("Unable to write test record");
         let mut reader = csv::Reader::from_path(&file_name).expect("Issue reading test.csv");
         let set_count = bulk_set(&mut reader);
         fs::remove_file(&file_name).unwrap();
@@ -163,7 +165,9 @@ mod tests {
         let test_file = File::create(&file_name).expect("Unable to create ./test.count.csv");
         test_file.set_len(0);
         let mut writer = csv::Writer::from_path(&file_name).expect("Issue reading test.csv");
-        writer.write_record(&["TEST1", "0.0", "0.0"]).expect("Unable to write test record");
+        writer
+            .write_record(&["TEST1", "0.0", "0.0"])
+            .expect("Unable to write test record");
         let mut reader = csv::Reader::from_path(&file_name).expect("Issue reading test.csv");
         bulk_set(&mut reader);
         let table_count = count("POSTCODE");
@@ -180,13 +184,14 @@ mod tests {
     #[test]
     fn test_set() {
         let result = set("TEST_TABLE", "TEST", "TEST").unwrap();
-        assert_eq!(result, "Wrote TEST to table: TEST_TABLE with key TEST and result 0");
+        assert_eq!(
+            result,
+            "Wrote TEST to table: TEST_TABLE with key TEST and result 0"
+        );
     }
 
     #[test]
-    fn test_get() {
-
-    }
+    fn test_get() {}
 
     #[test]
     fn test_get_postcode() {}

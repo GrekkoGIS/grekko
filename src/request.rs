@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn test_deserialise_and_build_jobs() {
-        let request = r#"{"coordinate_vehicles": ["AB1 0AA", "AB1 0AB"],"coordinate_jobs": ["AB1 0AB", "AB1 0AA"]}"#;
+        let request = r#"{"coordinate_vehicles": ["BS13AA", "BA21AA"],"coordinate_jobs": ["BS11AA", "BA21AA"]}"#;
 
         let obj: SimpleTrip = serde_json::from_str(request).unwrap();
 
