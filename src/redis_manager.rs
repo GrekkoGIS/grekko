@@ -1,15 +1,16 @@
 use std::fs::File;
 
-use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 use csv::Reader;
-use redis::{Client, Commands, Connection, RedisResult};
+use redis::{Client, Commands, Connection, RedisResult, RedisError};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
 
+use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
+
 fn connect_and_query<F, T>(mut action: F) -> Option<T>
-where
-    F: FnMut(Connection) -> Option<T>,
+    where
+        F: FnMut(Connection) -> Option<T>,
 {
     let client: Client = get_redis_client().ok()?;
     let con = client.get_connection().ok()?;
@@ -84,7 +85,7 @@ pub fn count(table: &str) -> i32 {
     con.hlen(table).unwrap()
 }
 
-pub fn bulk_set(reader: &mut Reader<File>) {
+pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
     let records = reader.records();
     let client: Client = get_redis_client().unwrap();
     let mut con = client.get_connection().unwrap();
@@ -116,10 +117,86 @@ pub fn bulk_set(reader: &mut Reader<File>) {
             .ignore();
     });
 
-    let result: RedisResult<i32> = pipeline.query(&mut con);
+    let result: RedisResult<()> = pipeline.query(&mut con);
 
-    println!(
-        "Finished bootstrapping {} postcodes, result: {:?}",
-        count, result
-    );
+    match result {
+        Ok(res) => {
+            println!(
+                "Finished bootstrapping {} postcodes, result: {:?}",
+                count, res
+            );
+            Some(())
+        },
+        Err(err) => {
+            println!("Failed to write to postcodes, error: {}", err);
+            None
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_bulk_set() {
+        let postcode_index = 0;
+        let lat_index = 1;
+        let lon_index = 2;
+        let file_name = "./test.bulk.set.csv";
+
+        let test_file = File::create(&file_name).expect("Unable to create ./test.csv");
+        test_file.set_len(0);
+        let mut writer = csv::Writer::from_path(&file_name).expect("Issue reading test.csv");
+        writer.write_record(&["TEST1", "0.0", "0.0"]).expect("Unable to write test record");
+        let mut reader = csv::Reader::from_path(&file_name).expect("Issue reading test.csv");
+        let set_count = bulk_set(&mut reader);
+        fs::remove_file(&file_name).unwrap();
+        assert_eq!(set_count, 1);
+    }
+
+    #[test]
+    fn test_count() {
+        let file_name = "./test.count.csv";
+
+        let test_file = File::create(&file_name).expect("Unable to create ./test.count.csv");
+        test_file.set_len(0);
+        let mut writer = csv::Writer::from_path(&file_name).expect("Issue reading test.csv");
+        writer.write_record(&["TEST1", "0.0", "0.0"]).expect("Unable to write test record");
+        let mut reader = csv::Reader::from_path(&file_name).expect("Issue reading test.csv");
+        bulk_set(&mut reader);
+        let table_count = count("POSTCODES");
+        fs::remove_file(&file_name).unwrap();
+        assert_ne!(table_count, 0);
+    }
+
+    #[test]
+    fn test_count_0() {
+        let table_count = count("POSTCODES");
+        assert_eq!(table_count, 0);
+    }
+
+    #[test]
+    fn test_set() {
+        let result = set("TEST_TABLE", "TEST", "TEST").unwrap();
+        assert_eq!(result, "Wrote TEST to table: TEST_TABLE with key TEST and result 1");
+    }
+
+    #[test]
+    fn test_get() {
+
+    }
+
+    #[test]
+    fn test_get_postcode() {}
+
+    #[test]
+    fn test_get_coordinates() {}
+
+    #[test]
+    fn test_get_redis_client() {}
+
+    #[test]
+    fn test_connect_and_query() {}
 }

@@ -18,7 +18,7 @@ pub enum GeocodingKind {
 
 cached! {
     POSTCODES;
-    fn bootstrap_cache(table: String) -> bool = {
+    fn bootstrap_cache(table: String) -> Option<()> = {
         match table.as_str() {
             POSTCODE_TABLE_NAME => {
                 // I don't want to read these again to UTF so using a known const
@@ -29,14 +29,14 @@ cached! {
                 if count != postcode_csv_size {
                     println!("Bootstrapping postcode cache");
                     redis_manager::bulk_set(&mut reader);
-                    true
+                    Some(())
                 } else {
-                    true
+                    None
                 }
             }
             _ => {
                 println!("No available table named {}", table);
-                false
+                None
             }
         }
     }
@@ -67,7 +67,7 @@ pub fn lookup_coordinates(query: String) -> Location {
 }
 
 pub fn get_postcodes() -> bool {
-    bootstrap_cache(POSTCODE_TABLE_NAME.to_string())
+    bootstrap_cache(POSTCODE_TABLE_NAME.to_string()) == Some(())
 }
 
 pub fn reverse_search(query: String) -> String {
