@@ -86,15 +86,20 @@ pub fn reverse_search(query: String) -> String {
 }
 
 pub fn reverse_search_cache(query: String) -> Option<String> {
-    // TODO sort this out, rust doesnt like fluent
+    let postcode = build_cache_key(query);
+    let postcode = postcode.as_str();
+
+    redis_manager::get_coordinates(postcode)
+}
+
+fn build_cache_key(query: String) -> String {
+    // TODO: sort this out, rust doesn't like fluent that much
     let postcode = query;
     let postcode = postcode.replace(" ", "");
     let postcode = postcode.replace("-", "");
     let postcode = postcode.replace(",", "");
     let postcode = postcode.replace(COORDINATES_SEPARATOR, "");
-    let postcode = postcode.as_str();
-
-    redis_manager::get_coordinates(postcode)
+    postcode
 }
 
 pub fn reverse_search_file(query: String) -> String {
@@ -160,8 +165,10 @@ pub fn read_geocoding_csv() -> Reader<File> {
 #[cfg(test)]
 mod tests {
     use crate::geocoding::{
-        bootstrap_cache, forward_search_file, get_postcodes, reverse_search_file,
+        bootstrap_cache, build_cache_key, forward_search_file, get_postcodes, reverse_search_file,
+        COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME,
     };
+    use crate::redis_manager::{del, get_coordinates, set};
 
     #[test]
     fn test_search_postcode() {
@@ -179,5 +186,16 @@ mod tests {
     #[test]
     fn test_bootstrap_postcode_cache() {
         assert_eq!(get_postcodes(), true);
+    }
+
+    #[test]
+    fn test_build_cache_key() {
+        let key = "IMAGINARY; -,POSTCODE";
+        let key = build_cache_key(String::from(key));
+        assert!(!key.contains(" "));
+        assert!(!key.contains("-"));
+        assert!(!key.contains(","));
+        assert!(!key.contains(COORDINATES_SEPARATOR));
+        assert_eq!(key, "IMAGINARYPOSTCODE")
     }
 }

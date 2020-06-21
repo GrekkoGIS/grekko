@@ -196,17 +196,33 @@ mod tests {
     }
 
     #[test]
-    fn test_get() {}
+    fn test_get() {
+        set("TEST_GET_TABLE", "TEST", "TEST").unwrap();
+        let get: String = get("TEST_GET_TABLE", "TEST").unwrap();
+        assert_eq!(get, "TEST")
+    }
 
     #[test]
     fn test_get_postcode() {}
 
     #[test]
-    fn test_get_coordinates() {}
+    fn test_get_coordinates() {
+        let key = "IMAGINARYPOSTCODE";
+        del(POSTCODE_TABLE_NAME, key);
+        set(POSTCODE_TABLE_NAME, key, "0.0;0.0").unwrap();
+        let coordinates = get_coordinates(key).unwrap();
+        assert_eq!(coordinates, "\"0.0;0.0\"")
+    }
 
     #[test]
-    fn test_get_redis_client() {}
+    fn test_get_redis_client() {
+        assert!(get_redis_client().is_ok())
+    }
 
     #[test]
-    fn test_connect_and_query() {}
+    fn test_connect_and_query() {
+        let result: Option<String> =
+            connect_and_query(|mut connection| connection.set("TEST_HOF", "TEST_HOF").ok()?);
+        assert!(result.is_some());
+    }
 }
