@@ -196,10 +196,20 @@ mod tests {
     }
 
     #[test]
-    fn test_get() {}
+    fn test_get() {
+        set("TEST_GET_TABLE", "TEST", "TEST").unwrap();
+        let get: String = get("TEST_GET_TABLE", "TEST").unwrap();
+        assert_eq!(get, "TEST")
+    }
 
     #[test]
-    fn test_get_postcode() {}
+    fn test_get_postcode() {
+        let key = "IMAGINARYPOSTCODE";
+        del(POSTCODE_TABLE_NAME, key);
+        set(POSTCODE_TABLE_NAME, key, "0.0;0.0").unwrap();
+        let coordinates = get_coordinates(key).unwrap();
+        assert_eq!(coordinates, "\"0.0;0.0\"")
+    }
 
     #[test]
     fn test_get_coordinates() {}
