@@ -39,6 +39,8 @@ jobs:
           override: true
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
+        with:
+          args: '-- --timeout 640'
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
