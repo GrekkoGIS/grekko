@@ -164,8 +164,11 @@ pub fn read_geocoding_csv() -> Reader<File> {
 
 #[cfg(test)]
 mod tests {
-    use crate::geocoding::{bootstrap_cache, forward_search_file, get_postcodes, reverse_search_file, POSTCODE_TABLE_NAME, COORDINATES_SEPARATOR, build_cache_key};
-    use crate::redis_manager::{get_coordinates, del, set};
+    use crate::geocoding::{
+        bootstrap_cache, build_cache_key, forward_search_file, get_postcodes, reverse_search_file,
+        COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME,
+    };
+    use crate::redis_manager::{del, get_coordinates, set};
 
     #[test]
     fn test_search_postcode() {

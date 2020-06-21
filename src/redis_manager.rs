@@ -203,8 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_postcode() {
-    }
+    fn test_get_postcode() {}
 
     #[test]
     fn test_get_coordinates() {
@@ -222,9 +221,8 @@ mod tests {
 
     #[test]
     fn test_connect_and_query() {
-        let result: Option<String> = connect_and_query(|mut connection| {
-            connection.set("TEST_HOF", "TEST_HOF").ok()?
-        });
+        let result: Option<String> =
+            connect_and_query(|mut connection| connection.set("TEST_HOF", "TEST_HOF").ok()?);
         assert!(result.is_some());
     }
 }
