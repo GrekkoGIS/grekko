@@ -52,6 +52,10 @@ pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Option<T> {
     }
 }
 
+pub fn del(table: &str, key: &str) -> Option<String> {
+    connect_and_query(|mut connection| connection.hdel(table, key).ok()?)
+}
+
 pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<String> {
     let client: Client = get_redis_client().expect("Unable to get a redis client");
     let mut con = client.get_connection().expect("Unable to get a connection");
@@ -141,13 +145,10 @@ mod tests {
 
     #[test]
     fn test_bulk_set() {
-        let postcode_index = 0;
-        let lat_index = 1;
-        let lon_index = 2;
         let file_name = "./test.bulk.set.csv";
 
         let test_file = File::create(&file_name).expect("Unable to create ./test.csv");
-        test_file.set_len(0);
+        test_file.set_len(0).unwrap();
         let mut writer = csv::Writer::from_path(&file_name).expect("Issue reading test.csv");
         writer
             .write_record(&["TEST1", "0.0", "0.0"])
@@ -160,7 +161,7 @@ mod tests {
 
     #[test]
     fn test_count() {
-        let res = set("TEST_TABLE_COUNT", "TEST", "TEST").unwrap();
+        set("TEST_TABLE_COUNT", "TEST", "TEST").unwrap();
         let table_count = count("TEST_TABLE_COUNT");
         assert_ne!(table_count, 0);
     }
@@ -173,11 +174,25 @@ mod tests {
 
     #[test]
     fn test_set() {
+        del("TEST_TABLE", "TEST");
         let result = set("TEST_TABLE", "TEST", "TEST").unwrap();
         assert_eq!(
             result,
             "Wrote TEST to table: TEST_TABLE with key TEST and result 1"
         );
+    }
+
+    #[test]
+    fn test_del() {
+        let table_count = count("TEST_DEL_TABLE");
+        println!("{}", table_count);
+        if table_count == 0 {
+            del("TEST_DEL_TABLE", "TEST");
+        }
+        set("TEST_DEL_TABLE", "TEST", "TEST").unwrap();
+        let del_result = del("TEST_DEL_TABLE", "TEST");
+        let table_count = count("TEST_DEL_TABLE");
+        assert_eq!(table_count, 0);
     }
 
     #[test]
