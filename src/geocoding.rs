@@ -1,9 +1,10 @@
 use std::fs::File;
 
-use crate::redis_manager;
 use csv::{ByteRecord, Reader};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
+
+use crate::redis_manager;
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -18,7 +19,7 @@ pub enum GeocodingKind {
 
 cached! {
     POSTCODES;
-    fn bootstrap_cache(table: String) -> bool = {
+    fn bootstrap_cache(table: String) -> Option<()> = {
         match table.as_str() {
             POSTCODE_TABLE_NAME => {
                 // I don't want to read these again to UTF so using a known const
@@ -29,14 +30,15 @@ cached! {
                 if count != postcode_csv_size {
                     println!("Bootstrapping postcode cache");
                     redis_manager::bulk_set(&mut reader);
-                    true
+                    Some(())
                 } else {
-                    true
+                    println!("Postcode cache was already bootstrapped");
+                    Some(())
                 }
             }
             _ => {
                 println!("No available table named {}", table);
-                false
+                None
             }
         }
     }
@@ -50,22 +52,26 @@ pub fn lookup_coordinates(query: String) -> Location {
     let coordinates: Vec<&str> = coordinates.split(';').collect();
     Location {
         lat: coordinates[0].parse().unwrap_or_else(|_| {
-            panic!(
+            println!(
                 "There weren't enough coordinates to extract latitude for postcode {}",
                 query
-            )
+            );
+            0.0
         }),
         lng: coordinates[1].parse().unwrap_or_else(|_| {
-            panic!(
+            println!(
                 "There weren't enough coordinates to extract longitude for postcode {}",
                 query
-            )
+            );
+            0.0
         }),
     }
 }
 
 pub fn get_postcodes() -> bool {
-    bootstrap_cache(POSTCODE_TABLE_NAME.to_string())
+    let bootstrapped = bootstrap_cache(POSTCODE_TABLE_NAME.to_string());
+    println!("{:?}", bootstrapped);
+    bootstrapped == Some(())
 }
 
 pub fn reverse_search(query: String) -> String {
@@ -172,6 +178,6 @@ mod tests {
 
     #[test]
     fn test_bootstrap_postcode_cache() {
-        get_postcodes();
+        assert_eq!(get_postcodes(), true);
     }
 }

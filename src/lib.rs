@@ -4,39 +4,47 @@ extern crate cached;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
+
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::Solution;
-use warp::Filter;
 use warp::http::Method;
+use warp::{reject, Filter, Rejection};
+
+use crate::user::{User, UserFail};
 
 mod geocoding;
 mod redis_manager;
 mod request;
 mod solver;
+mod user;
 
 pub async fn start_server(addr: SocketAddr) {
     tokio::task::spawn(async {
         geocoding::get_postcodes();
     });
 
-    let cors = warp::cors()
-        .allow_methods(&[
-            Method::GET,
-            Method::POST,
-            Method::DELETE,
-        ]);
+    let cors = warp::cors().allow_methods(&[Method::GET, Method::POST, Method::DELETE]);
 
     // TODO [#18]: potentially move path parameterized geocoding to query
-    let forward_geocoding =
-        warp::path!("geocoding" / "forward" / String)
-            .and_then(receive_and_search_coordinates)
-            .with(&cors);
+    let forward_geocoding = warp::path!("geocoding" / "forward" / String)
+        .and_then(receive_and_search_coordinates)
+        .with(&cors);
 
-    let reverse_geocoding =
-        warp::path!("geocoding" / "reverse" / f64 / f64)
-            .and_then(receive_and_search_postcode)
-            .with(&cors);
+    let reverse_geocoding = warp::path!("geocoding" / "reverse" / f64 / f64)
+        .and_then(receive_and_search_postcode)
+        .with(&cors);
+
+    let user_geocoding = warp::path!("user" / String)
+        .and_then(get_user_geocodings)
+        .with(&cors);
+
+    let create_user = warp::path!("user")
+        .and(warp::post())
+        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::json::<user::User>())
+        .and_then(set_user_geocodings)
+        .with(&cors);
 
     let simple_trip = warp::path!("routing" / "solver" / "simple")
         .and(warp::post())
@@ -60,6 +68,8 @@ pub async fn start_server(addr: SocketAddr) {
         .with(&cors);
 
     let routes = trip
+        .or(user_geocoding)
+        .or(create_user)
         .or(simple_trip)
         .or(simple_trip_async)
         .or(forward_geocoding)
@@ -82,6 +92,23 @@ pub async fn receive_and_search_postcode(
 ) -> Result<impl warp::Reply, Infallible> {
     let result = geocoding::forward_search(vec![lat, lon]);
     Ok(result)
+}
+
+pub async fn get_user_geocodings(user: String) -> Result<impl warp::Reply, Rejection> {
+    let result = redis_manager::get::<user::User>("USERS", user.as_str());
+    return match result {
+        None => Err(reject::custom(UserFail::new())),
+        Some(res) => Ok(warp::reply::json(&res)),
+    };
+}
+pub async fn set_user_geocodings(user: User) -> Result<impl warp::Reply, Rejection> {
+    let id = user.id.clone();
+    let id = id.as_str();
+    let result = redis_manager::set::<user::User>("USERS", id, user);
+    return match result {
+        Some(value) => Ok(warp::reply::json(&String::from(value))),
+        None => Err(reject()),
+    };
 }
 
 pub async fn trip(_request: Problem) -> Result<impl warp::Reply, Infallible> {

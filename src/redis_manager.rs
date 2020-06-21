@@ -1,8 +1,21 @@
 use std::fs::File;
 
-use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 use csv::Reader;
-use redis::{Client, Commands, RedisResult};
+use redis::{Client, Commands, Connection, RedisResult};
+use serde::de::DeserializeOwned;
+use serde::export::fmt::Display;
+use serde::Serialize;
+
+use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
+
+fn connect_and_query<F, T>(mut action: F) -> Option<T>
+where
+    F: FnMut(Connection) -> Option<T>,
+{
+    let client: Client = get_redis_client().ok()?;
+    let con = client.get_connection().ok()?;
+    action(con)
+}
 
 // TODO [#30]: add concurrency to all of this once benchmarked
 fn get_redis_client() -> RedisResult<Client> {
@@ -10,16 +23,10 @@ fn get_redis_client() -> RedisResult<Client> {
 }
 
 pub fn get_coordinates(postcode: &str) -> Option<String> {
-    let client: Client = get_redis_client().ok()?;
-    let mut con = client.get_connection().ok()?;
-
-    con.hget(POSTCODE_TABLE_NAME, postcode).ok()?
+    connect_and_query(|mut connection| connection.hget(POSTCODE_TABLE_NAME, postcode).ok()?)
 }
 
 pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
-    let client: Client = get_redis_client().ok()?;
-    let mut con = client.get_connection().ok()?;
-
     let coord_string = coordinates
         .iter()
         .map(|coord| coord.to_string())
@@ -27,11 +34,52 @@ pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
         .join(COORDINATES_SEPARATOR);
 
     // TODO [#31]: fix this
-    redis::cmd("HSCAN")
-        .arg(&["0", "MATCH", &coord_string])
-        .query(&mut con)
-        .ok()?
-    // con.get(postcode).ok()?
+    connect_and_query(|mut connection| {
+        redis::cmd("HSCAN")
+            .arg(&["0", "MATCH", &coord_string])
+            .query(&mut connection)
+            .ok()?
+    })
+}
+
+pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Option<T> {
+    let result: Option<String> =
+        connect_and_query(|mut connection| connection.hget(table, key).ok()?);
+
+    match result {
+        None => None,
+        Some(res) => serde_json::from_str(res.as_str()).ok()?,
+    }
+}
+
+pub fn del(table: &str, key: &str) -> Option<String> {
+    connect_and_query(|mut connection| connection.hdel(table, key).ok()?)
+}
+
+pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<String> {
+    let client: Client = get_redis_client().expect("Unable to get a redis client");
+    let mut con = client.get_connection().expect("Unable to get a connection");
+
+    let result: RedisResult<i32> = con.hset(
+        table,
+        key,
+        serde_json::to_string(&value).expect("Unable to serialize value"),
+    );
+
+    match result {
+        Err(err) => {
+            eprintln!("Couldn't write to redis, reason: {:?}", err.detail());
+            None
+        }
+        Ok(res) => {
+            let msg = format!(
+                "Wrote {} to table: {} with key {} and result {}",
+                value, table, key, res
+            );
+            println!("{}", msg);
+            Some(msg)
+        }
+    }
 }
 
 pub fn count(table: &str) -> i32 {
@@ -41,7 +89,7 @@ pub fn count(table: &str) -> i32 {
     con.hlen(table).unwrap()
 }
 
-pub fn bulk_set(reader: &mut Reader<File>) {
+pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
     let records = reader.records();
     let client: Client = get_redis_client().unwrap();
     let mut con = client.get_connection().unwrap();
@@ -73,10 +121,92 @@ pub fn bulk_set(reader: &mut Reader<File>) {
             .ignore();
     });
 
-    let result: RedisResult<i32> = pipeline.query(&mut con);
+    let result: RedisResult<()> = pipeline.query(&mut con);
 
-    println!(
-        "Finished bootstrapping {} postcodes, result: {:?}",
-        count, result
-    );
+    match result {
+        Ok(res) => {
+            println!(
+                "Finished bootstrapping {} postcodes, result: {:?}",
+                count, res
+            );
+            Some(())
+        }
+        Err(err) => {
+            println!("Failed to write to postcodes, error: {}", err);
+            None
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_bulk_set() {
+        let file_name = "./test.bulk.set.csv";
+
+        let test_file = File::create(&file_name).expect("Unable to create ./test.csv");
+        test_file.set_len(0).unwrap();
+        let mut writer = csv::Writer::from_path(&file_name).expect("Issue reading test.csv");
+        writer
+            .write_record(&["TEST1", "0.0", "0.0"])
+            .expect("Unable to write test record");
+        let mut reader = csv::Reader::from_path(&file_name).expect("Issue reading test.csv");
+        let set_count = bulk_set(&mut reader);
+        fs::remove_file(&file_name).unwrap();
+        assert_eq!(set_count, Some(()));
+    }
+
+    #[test]
+    fn test_count() {
+        set("TEST_TABLE_COUNT", "TEST", "TEST").unwrap();
+        let table_count = count("TEST_TABLE_COUNT");
+        assert_ne!(table_count, 0);
+    }
+
+    #[test]
+    fn test_count_0() {
+        let table_count = count("TEST");
+        assert_eq!(table_count, 0);
+    }
+
+    #[test]
+    fn test_set() {
+        del("TEST_TABLE", "TEST");
+        let result = set("TEST_TABLE", "TEST", "TEST").unwrap();
+        assert_eq!(
+            result,
+            "Wrote TEST to table: TEST_TABLE with key TEST and result 1"
+        );
+    }
+
+    #[test]
+    fn test_del() {
+        let table_count = count("TEST_DEL_TABLE");
+        println!("{}", table_count);
+        if table_count == 0 {
+            del("TEST_DEL_TABLE", "TEST");
+        }
+        set("TEST_DEL_TABLE", "TEST", "TEST").unwrap();
+        let del_result = del("TEST_DEL_TABLE", "TEST");
+        let table_count = count("TEST_DEL_TABLE");
+        assert_eq!(table_count, 0);
+    }
+
+    #[test]
+    fn test_get() {}
+
+    #[test]
+    fn test_get_postcode() {}
+
+    #[test]
+    fn test_get_coordinates() {}
+
+    #[test]
+    fn test_get_redis_client() {}
+
+    #[test]
+    fn test_connect_and_query() {}
 }

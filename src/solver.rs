@@ -45,7 +45,6 @@ mod tests {
     use crate::solver::{
         create_solver, get_pragmatic_problem, get_pragmatic_solution, solve_problem,
     };
-    use vrp_core::solver::Builder;
     use vrp_pragmatic::checker::CheckerContext;
     use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
     use vrp_pragmatic::format::solution::Solution;
