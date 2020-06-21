@@ -204,6 +204,10 @@ mod tests {
 
     #[test]
     fn test_get_postcode() {
+    }
+
+    #[test]
+    fn test_get_coordinates() {
         let key = "IMAGINARYPOSTCODE";
         del(POSTCODE_TABLE_NAME, key);
         set(POSTCODE_TABLE_NAME, key, "0.0;0.0").unwrap();
@@ -212,11 +216,15 @@ mod tests {
     }
 
     #[test]
-    fn test_get_coordinates() {}
+    fn test_get_redis_client() {
+        assert!(get_redis_client().is_ok())
+    }
 
     #[test]
-    fn test_get_redis_client() {}
-
-    #[test]
-    fn test_connect_and_query() {}
+    fn test_connect_and_query() {
+        let result: Option<String> = connect_and_query(|mut connection| {
+            connection.set("TEST_HOF", "TEST_HOF").ok()?
+        });
+        assert!(result.is_some());
+    }
 }
