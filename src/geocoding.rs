@@ -93,7 +93,7 @@ pub fn reverse_search_cache(query: String) -> Option<String> {
 }
 
 fn build_cache_key(query: String) -> String {
-    // TODO [$5eefcfe109b11f0007788681]: sort this out, rust doesn't like fluent that much
+    // TODO [#39]: sort this out, rust doesn't like fluent that much
     let postcode = query;
     let postcode = postcode.replace(" ", "");
     let postcode = postcode.replace("-", "");
