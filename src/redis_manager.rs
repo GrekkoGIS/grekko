@@ -186,7 +186,7 @@ mod tests {
         let result = set("TEST_TABLE", "TEST", "TEST").unwrap();
         assert_eq!(
             result,
-            "Wrote TEST to table: TEST_TABLE with key TEST and result 1"
+            "Wrote TEST to table: TEST_TABLE with key TEST and result 0"
         );
     }
 
