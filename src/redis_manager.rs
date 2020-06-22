@@ -190,7 +190,7 @@ mod tests {
             del("TEST_DEL_TABLE", "TEST");
         }
         set("TEST_DEL_TABLE", "TEST", "TEST").unwrap();
-        let del_result = del("TEST_DEL_TABLE", "TEST");
+        del("TEST_DEL_TABLE", "TEST");
         let table_count = count("TEST_DEL_TABLE");
         assert_eq!(table_count, 0);
     }

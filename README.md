@@ -30,12 +30,19 @@ TODO: add depth to this description
 
 Brain dump of otherwise stuff to add:
 - gRPC & REST
-- caching
-- async workflow
-- finish swagger
-- deploy
-- gitops
-- firecracker
-- space
+- caching/memoization
+- various methods of execution
+- gitops & firecracker
+- space datasets
+- 3d navigation (like googl earth, but using foss datasets)
+- routing(real routing)
+- using distance matricess
+- using osm for geocoding 
+- io_uring
+- http/2 support(depends on grpc)
+- event driven 
+- can also work with elixir to delegate threads
+- auth work with frontend
+- 
 
 Add creds to libraries, data stuff

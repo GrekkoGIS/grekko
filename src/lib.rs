@@ -53,6 +53,13 @@ pub async fn start_server(addr: SocketAddr) {
         .and_then(simple_trip)
         .with(&cors);
 
+    // let simple_trip_matrix = warp::path!("routing" / "solver" / "simple" / "matrix")
+    //     .and(warp::post())
+    //     .and(warp::body::content_length_limit(1024 * 16))
+    //     .and(warp::body::json::<request::SimpleTrip>())
+    //     .and_then(simple_trip)
+    //     .with(&cors);
+
     let simple_trip_async = warp::path!("routing" / "solver" / "simple" / "async")
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 16))
@@ -120,6 +127,33 @@ pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, 
     // TODO [#29]: add some concurrency here
     // Convert simple trip to internal problem
     let problem = trip.clone().convert_to_internal_problem().await;
+    // Convert internal problem to a core problem
+    let core_problem = problem.read_pragmatic();
+    // Create an ARC for it
+    let problem =
+        Arc::new(core_problem.expect("Could not read a pragmatic problem into a core problem"));
+    // Start building a solution
+    let (solution, _) = solver::solve_problem(solver::create_solver(problem.clone()));
+    // Convert that to a pragmatic solution
+    let solution: Solution =
+        solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
+
+    // TODO [#20]: this context builder is silly, refactor it
+    let problem: Problem = trip.convert_to_internal_problem().await;
+    let context = CheckerContext::new(problem, None, solution);
+
+    if let Err(err) = context.check() {
+        format!("unfeasible solution in '{}': '{}'", "name", err);
+    }
+
+    Ok(warp::reply::json(&context.solution))
+}
+
+pub async fn simple_trip_matrix(trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {
+    // TODO [#29]: add some concurrency here
+    // Convert simple trip to internal problem
+    let problem = trip.clone().convert_to_internal_problem().await;
+
     // Convert internal problem to a core problem
     let core_problem = problem.read_pragmatic();
     // Create an ARC for it

@@ -12,6 +12,7 @@ pub mod osrm_service;
 pub mod redis_manager;
 pub mod request;
 pub mod solver;
+pub mod mapbox;
 
 #[tokio::main]
 async fn main() {
