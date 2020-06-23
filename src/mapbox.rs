@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use itertools::Itertools;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,7 +26,17 @@ pub struct Source {
     pub location: Vec<f64>,
 }
 
-pub async fn get_matrix() -> Option<Matrix> {
+pub async fn get_matrix(coordinates: Vec<Vec<f64>>) -> Option<Matrix> {
+    // let coords = coordinates.join(";");
+    // let coords = coords.join(",");
+
+    let crds: String = coordinates.iter().map(|c| {
+        let coords_cols_str: Vec<String> = c.iter().map(ToString::to_string).collect();
+        coords_cols_str.join(",")
+    })
+        .collect::<Vec<String>>()
+        .join(";");
+
     let client = reqwest::Client::new();
     let response_body = client.get("https://api.mapbox.com/directions-matrix/v1/mapbox/driving/-122.42,37.78;-122.45,37.91;-122.48,37.73")
         .query(&[
@@ -47,7 +58,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_matrix() {
-        let code = get_matrix().await.unwrap().code;
+        let code = get_matrix(vec![vec![0.0, 0.0]]).await.unwrap().code;
         assert_eq!(code, "Ok")
     }
 }
