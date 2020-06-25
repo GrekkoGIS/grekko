@@ -12,34 +12,29 @@ pub fn get_pragmatic_problem(problem_text: &str) -> Problem {
 }
 
 pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> (Solution, String) {
+    (build_pragmatic_solution(&problem, &solution), build_geo_json(&problem, &solution))
+}
+
+pub fn build_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {
     let mut buffer = String::new();
     // TODO [#36]: don't be unsafe
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
     solution
-        .write_pragmatic_json(&problem, writer).expect("");
+        .write_pragmatic_json(&problem, writer)
+        .expect("Unable to write solution");
 
-    let mut buffer_geojson = String::new();
+    deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
+}
+
+pub fn build_geo_json(problem: &CoreProblem, solution: &CoreSolution) -> String {
     // TODO [#36]: don't be unsafe
+    let mut buffer_geojson = String::new();
     let writer = unsafe { BufWriter::new(buffer_geojson.as_mut_vec()) };
     solution
-        .write_geo_json(&problem, writer).expect("");
+        .write_geo_json(&problem, writer)
+        .expect("Unable to write geojson");
 
-    // let stop_markers = solution.tours.iter().enumerate().flat_map(|(tour_idx, tour)| {
-    //     tour.stops.iter().enumerate().map(move |(stop_idx, stop)| {
-    //         get_stop_point(tour_idx, stop_idx, &stop, get_color_inverse(tour_idx).as_str())
-    //     })
-    // });
-    //
-    // let stop_lines = solution
-    //     .tours
-    //     .iter()
-    //     .enumerate()
-    //     .map(|(tour_idx, tour)| get_tour_line(tour_idx, tour, get_color(tour_idx).as_str()));
-    //
-    // let geojson = serde_json::to_string(&FeatureCollection { features: stop_markers.chain(stop_lines).collect() }).unwrap();
-
-    (deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution"),
-     BufReader::new(buffer_geojson.as_bytes()).lines().map(|l| l.unwrap()).collect())
+    BufReader::new(buffer_geojson.as_bytes()).lines().map(|l| l.unwrap()).collect()
 }
 
 pub fn create_solver(problem: Arc<CoreProblem>) -> Solver {
