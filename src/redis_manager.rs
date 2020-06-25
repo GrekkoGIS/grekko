@@ -76,7 +76,6 @@ pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<S
                 "Wrote {} to table: {} with key {} and result {}",
                 value, table, key, res
             );
-            println!("{}", msg);
             Some(msg)
         }
     }

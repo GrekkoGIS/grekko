@@ -1,12 +1,14 @@
 use std::env;
 
 use serde::{Deserialize, Serialize};
+use vrp_pragmatic::format::problem::Matrix as VrpMatrix;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Matrix {
     pub code: String,
     pub distances: Vec<Vec<f64>>,
+    pub durations: Vec<Vec<f64>>,
     pub destinations: Vec<Destination>,
     pub sources: Vec<Source>,
 }
@@ -39,11 +41,12 @@ pub async fn get_matrix(coordinates: Vec<Vec<f64>>) -> Option<Matrix> {
 
     let client = reqwest::Client::new();
 
+    println!("{}", coords);
     let url = format!("https://api.mapbox.com/directions-matrix/v1/mapbox/driving/{}", coords.as_str());
     let response_body = client.get(&url)
         .query(&[
             ("access_token", access_token.as_str()),
-            ("annotations", "distance")
+            ("annotations", "distance,duration")
         ])
         .send()
         .await.ok()?
@@ -51,10 +54,20 @@ pub async fn get_matrix(coordinates: Vec<Vec<f64>>) -> Option<Matrix> {
         .await.ok()?;
 
     let matrix: Matrix = serde_json::from_str(response_body.as_str()).ok()?;
-    println!("{:?}", matrix);
+    println!("{:#?}", matrix);
     Some(matrix)
 }
 
+pub async fn convert_to_vrp_matrix(internal_matrix: Matrix) -> VrpMatrix {
+    let matrix = VrpMatrix {
+        profile: Some("car".to_string()),
+        timestamp: None,
+        travel_times: internal_matrix.durations[0].clone().iter().map(|val| val.clone() as i64).collect(),
+        distances: internal_matrix.distances[0].clone().iter().map(|val| val.clone() as i64).collect(),
+        error_codes: None
+    };
+    matrix
+}
 
 #[cfg(test)]
 mod tests {

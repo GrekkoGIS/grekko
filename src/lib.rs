@@ -6,10 +6,10 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use vrp_pragmatic::checker::CheckerContext;
-use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
+use vrp_pragmatic::format::problem::{PragmaticProblem, Problem, Matrix};
 use vrp_pragmatic::format::solution::Solution;
+use warp::{Filter, reject, Rejection};
 use warp::http::Method;
-use warp::{reject, Filter, Rejection};
 
 use crate::user::{User, UserFail};
 
@@ -18,6 +18,7 @@ mod redis_manager;
 mod request;
 mod solver;
 mod user;
+mod mapbox;
 
 pub async fn start_server(addr: SocketAddr) {
     tokio::task::spawn(async {
@@ -53,12 +54,12 @@ pub async fn start_server(addr: SocketAddr) {
         .and_then(simple_trip)
         .with(&cors);
 
-    // let simple_trip_matrix = warp::path!("routing" / "solver" / "simple" / "matrix")
-    //     .and(warp::post())
-    //     .and(warp::body::content_length_limit(1024 * 16))
-    //     .and(warp::body::json::<request::SimpleTrip>())
-    //     .and_then(simple_trip)
-    //     .with(&cors);
+    let simple_trip_matrix = warp::path!("routing" / "solver" / "simple" / "matrix")
+        .and(warp::post())
+        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::json::<request::SimpleTrip>())
+        .and_then(simple_trip_matrix)
+        .with(&cors);
 
     let simple_trip_async = warp::path!("routing" / "solver" / "simple" / "async")
         .and(warp::post())
@@ -78,6 +79,7 @@ pub async fn start_server(addr: SocketAddr) {
         .or(user_geocoding)
         .or(create_user)
         .or(simple_trip)
+        .or(simple_trip_matrix)
         .or(simple_trip_async)
         .or(forward_geocoding)
         .or(reverse_geocoding);
@@ -108,6 +110,7 @@ pub async fn get_user_geocodings(user: String) -> Result<impl warp::Reply, Rejec
         Some(res) => Ok(warp::reply::json(&res)),
     };
 }
+
 pub async fn set_user_geocodings(user: User) -> Result<impl warp::Reply, Rejection> {
     let id = user.id.clone();
     let id = id.as_str();
@@ -149,31 +152,70 @@ pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, 
     Ok(warp::reply::json(&context.solution))
 }
 
-pub async fn simple_trip_matrix(trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {
-    // TODO [#29]: add some concurrency here
-    // Convert simple trip to internal problem
+fn get_core_problem(problem: Problem, matrices: Option<Vec<Matrix>>) -> Arc<vrp_core::models::Problem> {
+    Arc::new(
+        if let Some(matrices) = matrices { (problem, matrices).read_pragmatic() } else { problem.read_pragmatic() }
+            .ok()
+            .unwrap(),
+    )
+}
+
+pub async fn simple_trip_matrix(trip: request::SimpleTrip) -> Result<impl warp::Reply, Rejection> {
+    if let Err(err) = apply_mapbox_max_jobs(&trip) {
+        return Err(err)
+    }
     let problem = trip.clone().convert_to_internal_problem().await;
 
-    // Convert internal problem to a core problem
-    let core_problem = problem.read_pragmatic();
+    let matrix = build_matrix(&trip).await;
+    let matrix_copy = matrix.clone();
+
+    let problem = get_core_problem(problem, Some(vec![matrix]));
+
     // Create an ARC for it
-    let problem =
-        Arc::new(core_problem.expect("Could not read a pragmatic problem into a core problem"));
-    // Start building a solution
+    // let problem =
+    //     Arc::new(core_problem.expect("Could not read a pragmatic problem into a core problem"));
+
     let (solution, _) = solver::solve_problem(solver::create_solver(problem.clone()));
-    // Convert that to a pragmatic solution
+
     let solution: Solution =
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
 
-    // TODO [#20]: this context builder is silly, refactor it
     let problem: Problem = trip.convert_to_internal_problem().await;
-    let context = CheckerContext::new(problem, None, solution);
+    let context = CheckerContext::new(problem, Some(vec![matrix_copy]), solution);
 
     if let Err(err) = context.check() {
         format!("unfeasible solution in '{}': '{}'", "name", err);
     }
 
     Ok(warp::reply::json(&context.solution))
+}
+
+fn apply_mapbox_max_jobs(trip: &request::SimpleTrip) -> std::result::Result<(), warp::reject::Rejection> {
+    if trip.coordinate_jobs.len() + trip.coordinate_vehicles.len() >= 25 {
+        return Err(warp::reject::reject())
+    } else {
+        Ok(())
+    }
+}
+
+async fn build_matrix(trip: &request::SimpleTrip) -> Matrix {
+    let matrix_vehicles: Vec<Vec<f64>> = trip.clone()
+        .coordinate_vehicles
+        .iter()
+        .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
+        .map(|location| vec![location.lng, location.lat])
+        .collect();
+    let matrix_jobs: Vec<Vec<f64>> = trip.clone()
+        .coordinate_jobs
+        .iter()
+        .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
+        .map(|location| vec![location.lng, location.lat])
+        .collect();
+    let concat = [&matrix_jobs[..], &matrix_vehicles[..]].concat();
+
+    let internal_matrix = mapbox::get_matrix(concat).await.unwrap_or_default();
+
+    mapbox::convert_to_vrp_matrix(internal_matrix).await
 }
 
 pub async fn simple_trip_async(_trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {

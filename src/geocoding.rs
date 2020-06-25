@@ -27,7 +27,7 @@ cached! {
                 let mut reader = crate::geocoding::read_geocoding_csv();
                 let count = redis_manager::count(POSTCODE_TABLE_NAME);
 
-                if count != postcode_csv_size {
+                if count < postcode_csv_size {
                     println!("Bootstrapping postcode cache");
                     redis_manager::bulk_set(&mut reader);
                     Some(())
@@ -70,7 +70,6 @@ pub fn lookup_coordinates(query: String) -> Location {
 
 pub fn get_postcodes() -> bool {
     let bootstrapped = bootstrap_cache(POSTCODE_TABLE_NAME.to_string());
-    println!("{:?}", bootstrapped);
     bootstrapped == Some(())
 }
 
@@ -168,7 +167,6 @@ mod tests {
         bootstrap_cache, build_cache_key, forward_search_file, get_postcodes, reverse_search_file,
         COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME,
     };
-    use crate::redis_manager::{del, get_coordinates, set};
 
     #[test]
     fn test_search_postcode() {
