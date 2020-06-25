@@ -136,9 +136,9 @@ pub async fn simple_trip(trip: request::SimpleTrip) -> Result<impl warp::Reply, 
     let problem =
         Arc::new(core_problem.expect("Could not read a pragmatic problem into a core problem"));
     // Start building a solution
-    let (solution, _) = solver::solve_problem(solver::create_solver(problem.clone()));
+    let (solution, _, _) = solver::solve_problem(solver::create_solver(problem.clone()));
     // Convert that to a pragmatic solution
-    let solution: Solution =
+    let (solution, _) =
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
 
     // TODO [#20]: this context builder is silly, refactor it
@@ -164,6 +164,7 @@ pub async fn simple_trip_matrix(trip: request::SimpleTrip) -> Result<impl warp::
     if let Err(err) = apply_mapbox_max_jobs(&trip) {
         return Err(err)
     }
+
     let problem = trip.clone().convert_to_internal_problem().await;
 
     let matrix = build_matrix(&trip).await;
@@ -171,18 +172,14 @@ pub async fn simple_trip_matrix(trip: request::SimpleTrip) -> Result<impl warp::
 
     let problem = get_core_problem(problem, Some(vec![matrix]));
 
-    // Create an ARC for it
-    // let problem =
-    //     Arc::new(core_problem.expect("Could not read a pragmatic problem into a core problem"));
+    let (solution, _, _) = solver::solve_problem(solver::create_solver(problem.clone()));
 
-    let (solution, _) = solver::solve_problem(solver::create_solver(problem.clone()));
-
-    let solution: Solution =
+    let (solution, _) =
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
 
     let problem: Problem = trip.convert_to_internal_problem().await;
-    let context = CheckerContext::new(problem, Some(vec![matrix_copy]), solution);
 
+    let context = CheckerContext::new(problem, Some(vec![matrix_copy]), solution);
     if let Err(err) = context.check() {
         format!("unfeasible solution in '{}': '{}'", "name", err);
     }

@@ -1,8 +1,9 @@
-use std::io::{BufReader, BufWriter};
-
+use std::io::{BufRead, BufReader, BufWriter, Read};
+use std::io;
 use std::sync::Arc;
+
 use vrp_core::models::{Problem as CoreProblem, Solution as CoreSolution};
-use vrp_core::solver::{Builder, Solver};
+use vrp_core::solver::{Builder, Metrics, Solver};
 use vrp_pragmatic::format::problem::{deserialize_problem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 
@@ -10,17 +11,35 @@ pub fn get_pragmatic_problem(problem_text: &str) -> Problem {
     deserialize_problem(BufReader::new(problem_text.as_bytes())).unwrap()
 }
 
-pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {
+pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> (Solution, String) {
     let mut buffer = String::new();
     // TODO [#36]: don't be unsafe
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-
     solution
-        .write_pragmatic_json(&problem, writer)
-        // .write_geo_json(&problem, writer)
-        .expect("cannot write pragmatic solution");
+        .write_pragmatic_json(&problem, writer).expect("");
 
-    deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
+    let mut buffer_geojson = String::new();
+    // TODO [#36]: don't be unsafe
+    let writer = unsafe { BufWriter::new(buffer_geojson.as_mut_vec()) };
+    solution
+        .write_geo_json(&problem, writer).expect("");
+
+    // let stop_markers = solution.tours.iter().enumerate().flat_map(|(tour_idx, tour)| {
+    //     tour.stops.iter().enumerate().map(move |(stop_idx, stop)| {
+    //         get_stop_point(tour_idx, stop_idx, &stop, get_color_inverse(tour_idx).as_str())
+    //     })
+    // });
+    //
+    // let stop_lines = solution
+    //     .tours
+    //     .iter()
+    //     .enumerate()
+    //     .map(|(tour_idx, tour)| get_tour_line(tour_idx, tour, get_color(tour_idx).as_str()));
+    //
+    // let geojson = serde_json::to_string(&FeatureCollection { features: stop_markers.chain(stop_lines).collect() }).unwrap();
+
+    (deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution"),
+     BufReader::new(buffer_geojson.as_bytes()).lines().map(|l| l.unwrap()).collect())
 }
 
 pub fn create_solver(problem: Arc<CoreProblem>) -> Solver {
@@ -31,7 +50,7 @@ pub fn create_solver(problem: Arc<CoreProblem>) -> Solver {
         .unwrap_or_else(|err| panic!("cannot build solver, error: {}", err))
 }
 
-pub fn solve_problem(solver: Solver) -> (CoreSolution, f64) {
+pub fn solve_problem(solver: Solver) -> (CoreSolution, f64, Option<Metrics>) {
     solver
         .solve()
         .unwrap_or_else(|err| panic!("cannot solve problem, error: {}", err))
@@ -41,13 +60,14 @@ pub fn solve_problem(solver: Solver) -> (CoreSolution, f64) {
 mod tests {
     use std::sync::Arc;
 
+    use vrp_pragmatic::checker::CheckerContext;
+    use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
+    use vrp_pragmatic::format::solution::Solution;
+
     use crate::solver;
     use crate::solver::{
         create_solver, get_pragmatic_problem, get_pragmatic_solution, solve_problem,
     };
-    use vrp_pragmatic::checker::CheckerContext;
-    use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
-    use vrp_pragmatic::format::solution::Solution;
 
     #[test]
     fn test_pragmatic() {

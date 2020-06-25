@@ -1886,9 +1886,9 @@ checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
 [[package]]
 name = "vrp-core"
-version = "1.2.1"
+version = "1.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93eef1d2b99a0afc6e89c35c014221d8c85700536faf6f3026805065d716b556"
+checksum = "26bb96d93400f59025295ba6d9317d5769c7f6c1a5f034bc645f419a3ae825fe"
 dependencies = [
  "hashbrown 0.7.2",
  "js-sys",
@@ -1898,9 +1898,9 @@ dependencies = [
 
 [[package]]
 name = "vrp-pragmatic"
-version = "1.2.1"
+version = "1.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "902842efe561e610a2760b0e5427b8e7c8e6237959442b55d0567b750456036b"
+checksum = "ba3d5f03d52a2bdacccbda75e4e7278cc41d683d8dfb7cf2630af4fbb3f74f05"
 dependencies = [
  "chrono",
  "rand 0.7.3",
