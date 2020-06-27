@@ -1,5 +1,4 @@
-use std::io::{BufRead, BufReader, BufWriter, Read};
-use std::io;
+use std::io::{BufRead, BufReader, BufWriter};
 use std::sync::Arc;
 
 use vrp_core::models::{Problem as CoreProblem, Solution as CoreSolution};
