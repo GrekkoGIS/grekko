@@ -5,11 +5,15 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use jsonwebtoken::{dangerous_unsafe_decode, decode, decode_header};
+use jsonwebtoken::errors::ErrorKind;
+use serde::{Deserialize, Serialize};
 use vrp_pragmatic::checker::CheckerContext;
-use vrp_pragmatic::format::problem::{PragmaticProblem, Problem, Matrix};
+use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::Solution;
-use warp::{Filter, reject, Rejection};
+use warp::{Error, Filter, reject, Rejection};
 use warp::http::Method;
+use warp::reject::MissingHeader;
 
 use crate::user::{User, UserFail};
 
@@ -20,6 +24,20 @@ mod solver;
 mod user;
 mod mapbox;
 
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    ver: i32,
+    jti: String,
+    iss: String,
+    aud: String,
+    iat: i64,
+    exp: i64,
+    cid: String,
+    uid: String,
+    scp: Vec<String>,
+    sub: String,
+}
+
 pub async fn start_server(addr: SocketAddr) {
     tokio::task::spawn(async {
         geocoding::get_postcodes();
@@ -29,65 +47,90 @@ pub async fn start_server(addr: SocketAddr) {
 
     // TODO [#18]: potentially move path parameterized geocoding to query
     let forward_geocoding = warp::path!("geocoding" / "forward" / String)
-        .and_then(receive_and_search_coordinates)
-        .with(&cors);
+        .and_then(receive_and_search_coordinates);
 
     let reverse_geocoding = warp::path!("geocoding" / "reverse" / f64 / f64)
-        .and_then(receive_and_search_postcode)
-        .with(&cors);
+        .and_then(receive_and_search_postcode);
 
     let user_geocoding = warp::path!("user" / String)
-        .and_then(get_user_geocodings)
-        .with(&cors);
+        .and_then(get_user_geocodings);
 
     let create_user = warp::path!("user")
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json::<user::User>())
-        .and_then(set_user_geocodings)
-        .with(&cors);
+        .and_then(set_user_geocodings);
 
     let simple_trip = warp::path!("routing" / "solver" / "simple")
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json::<request::SimpleTrip>())
-        .and_then(simple_trip)
-        .with(&cors);
+        .and_then(simple_trip);
 
     let simple_trip_matrix = warp::path!("routing" / "solver" / "simple" / "matrix")
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json::<request::SimpleTrip>())
-        .and_then(simple_trip_matrix)
-        .with(&cors);
+        .and_then(simple_trip_matrix);
 
     let simple_trip_async = warp::path!("routing" / "solver" / "simple" / "async")
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json::<request::SimpleTrip>())
-        .and_then(simple_trip_async)
-        .with(&cors);
+        .and_then(simple_trip_async);
 
     let trip = warp::path!("routing" / "solver")
         // TODO [#19]: fix compression .with(warp::compression::gzip())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json())
-        .and_then(trip)
-        .with(&cors);
+        .and_then(trip);
+
+    // let user_extractor = warp::header("authorization")
+    //     .and_then(|s: String| async move { s.parse().map_err(|e| reject::custom(e)) })
+    //     .map(|t: Token<Claims>| Some(t.claims().user.clone()))
+    //     .or_else(|e: Rejection| async {
+    //         log::info!("{:?}", e);
+    //         e.find::<MissingHeader>().map(|_| (None,)).ok_or_else(|| e)
+    //     });
+    //
+    //
+
+    let user_extractor = warp::header::<String>("authorization")
+        .and_then(get_user_claims);
 
     let routes = trip
+        .or(user_extractor)
         .or(user_geocoding)
         .or(create_user)
         .or(simple_trip)
         .or(simple_trip_matrix)
         .or(simple_trip_async)
         .or(forward_geocoding)
-        .or(reverse_geocoding);
+        .or(reverse_geocoding)
+        .with(&cors);
 
     println!("Server is starting on {}", addr);
-    warp::serve(routes).run(addr).await;
+    warp::serve(routes)
+        .run(addr).await;
 }
 
+pub async fn get_user_claims(
+    token: String,
+) -> Result<impl warp::Reply, Infallible> {
+    println!("{}", token);
+    let tokens: Vec<&str> = token.split("Bearer ").collect();
+    let token = tokens.get(1).unwrap().clone();
+    let result = dangerous_unsafe_decode::<Claims>(&token);
+    // let result = decode_header(&token);
+    // Ok(warp::reply::json(&token.unwrap().claims))
+    // .map_err(|e| {
+    //     warp::reject::custom(Error {
+    //         inner: Box::new(())
+    //     })
+    // });
+    Ok(serde_json::to_string(&result.unwrap().claims).unwrap())
+    // Ok(serde_json::to_string(&result.unwrap()).unwrap())
+}
 pub async fn receive_and_search_coordinates(
     postcode: String,
 ) -> Result<impl warp::Reply, Infallible> {
@@ -162,7 +205,7 @@ fn get_core_problem(problem: Problem, matrices: Option<Vec<Matrix>>) -> Arc<vrp_
 
 pub async fn simple_trip_matrix(trip: request::SimpleTrip) -> Result<impl warp::Reply, Rejection> {
     if let Err(err) = apply_mapbox_max_jobs(&trip) {
-        return Err(err)
+        return Err(err);
     }
 
     let problem = trip.clone().convert_to_internal_problem().await;
@@ -189,7 +232,7 @@ pub async fn simple_trip_matrix(trip: request::SimpleTrip) -> Result<impl warp::
 
 fn apply_mapbox_max_jobs(trip: &request::SimpleTrip) -> std::result::Result<(), warp::reject::Rejection> {
     if trip.coordinate_jobs.len() + trip.coordinate_vehicles.len() >= 25 {
-        return Err(warp::reject::reject())
+        return Err(warp::reject::reject());
     } else {
         Ok(())
     }
