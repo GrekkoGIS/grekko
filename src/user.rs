@@ -39,9 +39,9 @@ pub struct UserFail {
 impl reject::Reject for UserFail {}
 
 impl UserFail {
-    pub fn new() -> UserFail {
+    pub fn new(id: String) -> UserFail {
         UserFail {
-            message: String::from("Unable to find a user with that id"),
+            message: format!("Unable to find a user with id `{}`", id),
         }
     }
 }
