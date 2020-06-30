@@ -44,7 +44,9 @@ pub async fn start_server(addr: SocketAddr) {
         geocoding::get_postcodes();
     });
 
-    let cors = warp::cors().allow_methods(&[Method::GET, Method::POST, Method::DELETE]);
+    let cors = warp::cors()
+        .allow_methods(&[Method::GET, Method::POST])
+        .allow_header("authorization");
 
     let user_extractor = warp::path("user")
         .and(warp::get())
@@ -60,12 +62,12 @@ pub async fn start_server(addr: SocketAddr) {
         .and(warp::header::<String>("authorization"))
         .and_then(receive_and_search_postcode);
 
-    // let create_user = warp::path!("user" / String)
-    //     .and(warp::header::<String>("authorization"))
-    //     .and(warp::post())
-    //     .and(warp::body::content_length_limit(1024 * 16))
-    //     .and(warp::body::json::<user::User>())
-    //     .and_then(set_user_details);
+    let create_user = warp::path!("user" / "create")
+        .and(warp::header::<String>("authorization"))
+        .and(warp::post())
+        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::json::<user::User>())
+        .and_then(set_user_details);
 
     let simple_trip = warp::path!("routing" / "solver" / "simple")
         .and(warp::header::<String>("authorization"))
@@ -97,7 +99,7 @@ pub async fn start_server(addr: SocketAddr) {
 
     let routes = trip
         .or(user_extractor)
-        // .or(create_user)
+        .or(create_user)
         .or(simple_trip)
         .or(simple_trip_matrix)
         .or(simple_trip_async)
@@ -119,13 +121,19 @@ pub async fn get_user_claims(
     let token = tokens.get(1).unwrap().clone();
     let result = dangerous_unsafe_decode::<Claims>(&token);
     let claims = result.unwrap().claims;
-    let uid = claims.uid;
+    let uid = claims.uid.clone();
+    validate_expiry(&claims)?;
+    get_user_details(uid).await
+}
+
+fn validate_expiry(claims: &Claims) -> Result<(), Rejection> {
     let expiry_date_time = NaiveDateTime::from_timestamp(claims.exp, 0).timestamp();
     let now = Utc::now().naive_utc().timestamp();
     if expiry_date_time <= now {
         return Err(reject::not_found())
-    };
-    get_user_details(uid).await
+    } else {
+        Ok(())
+    }
 }
 
 pub async fn receive_and_search_coordinates(
