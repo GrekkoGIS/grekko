@@ -16,6 +16,7 @@ use warp::http::Method;
 use warp::reject::MissingHeader;
 
 use crate::user::{User, UserFail};
+use chrono::{NaiveDateTime, Utc};
 
 mod geocoding;
 mod redis_manager;
@@ -45,7 +46,8 @@ pub async fn start_server(addr: SocketAddr) {
 
     let cors = warp::cors().allow_methods(&[Method::GET, Method::POST, Method::DELETE]);
 
-    let user_extractor = warp::path!("user")
+    let user_extractor = warp::path("user")
+        .and(warp::get())
         .and(warp::header::<String>("authorization"))
         .and_then(get_user_claims);
 
@@ -58,12 +60,12 @@ pub async fn start_server(addr: SocketAddr) {
         .and(warp::header::<String>("authorization"))
         .and_then(receive_and_search_postcode);
 
-    let create_user = warp::path!("user")
-        .and(warp::header::<String>("authorization"))
-        .and(warp::post())
-        .and(warp::body::content_length_limit(1024 * 16))
-        .and(warp::body::json::<user::User>())
-        .and_then(set_user_details);
+    // let create_user = warp::path!("user" / String)
+    //     .and(warp::header::<String>("authorization"))
+    //     .and(warp::post())
+    //     .and(warp::body::content_length_limit(1024 * 16))
+    //     .and(warp::body::json::<user::User>())
+    //     .and_then(set_user_details);
 
     let simple_trip = warp::path!("routing" / "solver" / "simple")
         .and(warp::header::<String>("authorization"))
@@ -95,7 +97,7 @@ pub async fn start_server(addr: SocketAddr) {
 
     let routes = trip
         .or(user_extractor)
-        .or(create_user)
+        // .or(create_user)
         .or(simple_trip)
         .or(simple_trip_matrix)
         .or(simple_trip_async)
@@ -116,7 +118,13 @@ pub async fn get_user_claims(
     let tokens: Vec<&str> = token.split("Bearer ").collect();
     let token = tokens.get(1).unwrap().clone();
     let result = dangerous_unsafe_decode::<Claims>(&token);
-    let uid = result.unwrap().claims.uid;
+    let claims = result.unwrap().claims;
+    let uid = claims.uid;
+    let expiry_date_time = NaiveDateTime::from_timestamp(claims.exp, 0).timestamp();
+    let now = Utc::now().naive_utc().timestamp();
+    if expiry_date_time <= now {
+        return Err(reject::not_found())
+    };
     get_user_details(uid).await
 }
 
