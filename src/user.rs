@@ -2,7 +2,7 @@ use serde::export::fmt;
 use serde::{Deserialize, Serialize};
 use warp::{reject, Reply, Rejection};
 use warp::reply::Response;
-use jsonwebtoken::{dangerous_unsafe_decode, Validation, decode, TokenData, DecodingKey, Algorithm};
+use jsonwebtoken::{dangerous_unsafe_decode, Validation, decode, TokenData, DecodingKey, Algorithm, decode_header};
 use crate::{Claims, redis_manager};
 use chrono::{NaiveDateTime, Utc};
 
@@ -50,7 +50,7 @@ pub async fn set_user_details(token: String, user: User) -> Result<impl warp::Re
     let id = id.as_str();
     let result = redis_manager::set::<User>("USERS", id, user);
     match result {
-        Some(value) => Ok(warp::reply::json(&String::from(value))),
+        Some(value) => Ok(warp::reply::json(&value)),
         None => Err(reject()),
     }
 }
@@ -71,10 +71,12 @@ fn decode_token(token: String) -> TokenData<Claims> {
     validation.leeway = 60;
     validation.iss = Some(String::from("https://dev-201460.okta.com/oauth2/default"));
     validation.validate_exp = true;
-    validation.algorithms = vec![Algorithm::RS256];
+    validation.algorithms = vec![Algorithm::RS256, Algorithm::HS256, Algorithm::RS512];
 
     log::debug!("Validation: {:?}", validation);
 
+    let header = decode_header(&token);
+    log::debug!("Token header: {:?}", header);
     decode::<Claims>(&token, &DecodingKey::from_secret("".as_ref()), &validation).unwrap()
 }
 
