@@ -15,7 +15,7 @@ use warp::{Error, Filter, reject, Rejection, Reply};
 use warp::http::Method;
 use warp::reject::MissingHeader;
 
-use crate::user::{User, UserFail};
+use crate::user::{User, UserFail, set_user_details, get_user_claims};
 use chrono::{NaiveDateTime, Utc};
 
 mod geocoding;
@@ -114,28 +114,6 @@ pub async fn start_server(addr: SocketAddr) {
         .run(addr).await;
 }
 
-pub async fn get_user_claims(
-    token: String,
-) -> Result<impl Reply, Rejection> {
-    let tokens: Vec<&str> = token.split("Bearer ").collect();
-    let token = tokens.get(1).unwrap().clone();
-    let result = dangerous_unsafe_decode::<Claims>(&token);
-    let claims = result.unwrap().claims;
-    let uid = claims.uid.clone();
-    validate_expiry(&claims)?;
-    get_user_details(uid).await
-}
-
-fn validate_expiry(claims: &Claims) -> Result<(), Rejection> {
-    let expiry_date_time = NaiveDateTime::from_timestamp(claims.exp, 0).timestamp();
-    let now = Utc::now().naive_utc().timestamp();
-    if expiry_date_time <= now {
-        return Err(reject::not_found())
-    } else {
-        Ok(())
-    }
-}
-
 pub async fn receive_and_search_coordinates(
     token: String,
     postcode: String,
@@ -151,24 +129,6 @@ pub async fn receive_and_search_postcode(
 ) -> Result<impl warp::Reply, Infallible> {
     let result = geocoding::forward_search(vec![lat, lon]);
     Ok(result)
-}
-
-pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejection> {
-    let result = redis_manager::get::<user::User>("USERS", user.as_str());
-    match result {
-        None => Err(reject::custom(UserFail::new(user))),
-        Some(res) => Ok(warp::reply::json(&res)),
-    }
-}
-
-pub async fn set_user_details(token: String, user: User) -> Result<impl warp::Reply, Rejection> {
-    let id = user.id.clone();
-    let id = id.as_str();
-    let result = redis_manager::set::<user::User>("USERS", id, user);
-    match result {
-        Some(value) => Ok(warp::reply::json(&String::from(value))),
-        None => Err(reject()),
-    }
 }
 
 pub async fn trip(token: String, _request: Problem) -> Result<impl warp::Reply, Infallible> {
