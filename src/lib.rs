@@ -85,16 +85,6 @@ pub async fn start_server(addr: SocketAddr) {
         .and(warp::body::json())
         .and_then(trip);
 
-    // let user_extractor = warp::header("authorization")
-    //     .and_then(|s: String| async move { s.parse().map_err(|e| reject::custom(e)) })
-    //     .map(|t: Token<Claims>| Some(t.claims().user.clone()))
-    //     .or_else(|e: Rejection| async {
-    //         log::info!("{:?}", e);
-    //         e.find::<MissingHeader>().map(|_| (None,)).ok_or_else(|| e)
-    //     });
-    //
-    //
-
     let user_extractor = warp::header::<String>("authorization")
         .and_then(get_user_claims);
 
@@ -117,19 +107,11 @@ pub async fn start_server(addr: SocketAddr) {
 pub async fn get_user_claims(
     token: String,
 ) -> Result<impl warp::Reply, Infallible> {
-    println!("{}", token);
     let tokens: Vec<&str> = token.split("Bearer ").collect();
     let token = tokens.get(1).unwrap().clone();
     let result = dangerous_unsafe_decode::<Claims>(&token);
-    // let result = decode_header(&token);
-    // Ok(warp::reply::json(&token.unwrap().claims))
-    // .map_err(|e| {
-    //     warp::reject::custom(Error {
-    //         inner: Box::new(())
-    //     })
-    // });
-    Ok(serde_json::to_string(&result.unwrap().claims).unwrap())
-    // Ok(serde_json::to_string(&result.unwrap()).unwrap())
+    let uid = result.unwrap().claims.uid;
+    Ok(uid)
 }
 pub async fn receive_and_search_coordinates(
     postcode: String,
