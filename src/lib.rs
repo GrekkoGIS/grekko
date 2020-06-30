@@ -88,7 +88,6 @@ pub async fn start_server(addr: SocketAddr) {
 
     let trip = warp::path!("routing" / "solver")
         .and(warp::header::<String>("authorization"))
-        // TODO [#19]: fix compression .with(warp::compression::gzip())
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json())
         .and_then(trip);
@@ -102,6 +101,8 @@ pub async fn start_server(addr: SocketAddr) {
         .or(simple_trip_async)
         .or(forward_geocoding)
         .or(reverse_geocoding)
+        // TODO [#19]: fix compression .with(warp::compression::gzip())
+        // .with(warp::compression::gzip())
         .with(&cors);
 
     println!("Server is starting on {}", addr);
