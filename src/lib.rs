@@ -118,6 +118,7 @@ pub async fn receive_and_search_coordinates(
     token: String,
     postcode: String,
 ) -> Result<impl warp::Reply, Infallible> {
+    get_user_claims(token);
     let result = geocoding::reverse_search(postcode);
     Ok(result)
 }
@@ -127,16 +128,19 @@ pub async fn receive_and_search_postcode(
     lon: f64,
     token: String
 ) -> Result<impl warp::Reply, Infallible> {
+    get_user_claims(token);
     let result = geocoding::forward_search(vec![lat, lon]);
     Ok(result)
 }
 
 pub async fn trip(token: String, _request: Problem) -> Result<impl warp::Reply, Infallible> {
+    get_user_claims(token);
     // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")
 }
 
 pub async fn simple_trip(token: String, trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {
+    get_user_claims(token);
     // TODO [#29]: add some concurrency here
     // Convert simple trip to internal problem
     let problem = trip.clone().convert_to_internal_problem().await;
@@ -171,6 +175,7 @@ fn get_core_problem(problem: Problem, matrices: Option<Vec<Matrix>>) -> Arc<vrp_
 }
 
 pub async fn simple_trip_matrix(token: String, trip: request::SimpleTrip) -> Result<impl warp::Reply, Rejection> {
+    get_user_claims(token);
     if let Err(err) = apply_mapbox_max_jobs(&trip) {
         return Err(err);
     }
@@ -197,9 +202,9 @@ pub async fn simple_trip_matrix(token: String, trip: request::SimpleTrip) -> Res
     Ok(warp::reply::json(&context.solution))
 }
 
-fn apply_mapbox_max_jobs(trip: &request::SimpleTrip) -> std::result::Result<(), warp::reject::Rejection> {
+fn apply_mapbox_max_jobs(trip: &request::SimpleTrip) -> std::result::Result<(), Rejection> {
     if trip.coordinate_jobs.len() + trip.coordinate_vehicles.len() >= 25 {
-        return Err(warp::reject::reject());
+        Err(warp::reject::reject())
     } else {
         Ok(())
     }
@@ -225,7 +230,8 @@ async fn build_matrix(trip: &request::SimpleTrip) -> Matrix {
     mapbox::convert_to_vrp_matrix(internal_matrix).await
 }
 
-pub async fn simple_trip_async(token: String, _trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {
+pub async fn simple_trip_async(token: String, _trip: request::SimpleTrip) -> Result<impl warp::Reply, Rejection> {
+    get_user_claims(token);
     tokio::task::spawn(async { println!("Hey, i'm gonna be another task") });
     // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")

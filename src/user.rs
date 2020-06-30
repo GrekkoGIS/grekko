@@ -2,7 +2,7 @@ use serde::export::fmt;
 use serde::{Deserialize, Serialize};
 use warp::{reject, Reply, Rejection};
 use warp::reply::Response;
-use jsonwebtoken::dangerous_unsafe_decode;
+use jsonwebtoken::{dangerous_unsafe_decode, Validation, decode, TokenData, DecodingKey, Algorithm};
 use crate::{Claims, redis_manager};
 use chrono::{NaiveDateTime, Utc};
 
@@ -36,6 +36,7 @@ impl fmt::Display for User {
 
 
 pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejection> {
+    decode_token(user.clone());
     let result = redis_manager::get::<User>("USERS", user.as_str());
     match result {
         None => Err(reject::custom(UserFail::new(user))),
@@ -44,6 +45,7 @@ pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejectio
 }
 
 pub async fn set_user_details(token: String, user: User) -> Result<impl warp::Reply, Rejection> {
+    decode_token(token);
     let id = user.id.clone();
     let id = id.as_str();
     let result = redis_manager::set::<User>("USERS", id, user);
@@ -56,23 +58,37 @@ pub async fn set_user_details(token: String, user: User) -> Result<impl warp::Re
 pub async fn get_user_claims(
     token: String,
 ) -> Result<impl Reply, Rejection> {
+    let uid = decode_token(token).claims.uid;
+    get_user_details(uid).await
+}
+
+fn decode_token(token: String) -> TokenData<Claims> {
+    let token: Vec<&str> = token.split("Bearer ").collect();
+    let token = token.get(1).unwrap().clone();
+    let mut validation = Validation::default();
+
+    validation.set_audience(&["api://default"]);
+    validation.leeway = 60;
+    validation.iss = Some(String::from("https://dev-201460.okta.com/oauth2/default"));
+    validation.validate_exp = true;
+    validation.algorithms = vec![Algorithm::RS256];
+
+    log::debug!("Validation: {:?}", validation);
+
+    decode::<Claims>(&token, &DecodingKey::from_secret("".as_ref()), &validation).unwrap()
+}
+
+fn decode_admin(token: String) {
     let tokens: Vec<&str> = token.split("Bearer ").collect();
     let token = tokens.get(1).unwrap().clone();
     let result = dangerous_unsafe_decode::<Claims>(&token);
     let claims = result.unwrap().claims;
-    let uid = claims.uid.clone();
-    validate_expiry(&claims)?;
-    get_user_details(uid).await
-}
 
-fn validate_expiry(claims: &Claims) -> Result<(), Rejection> {
-    let expiry_date_time = NaiveDateTime::from_timestamp(claims.exp, 0).timestamp();
-    let now = Utc::now().naive_utc().timestamp();
-    if expiry_date_time <= now {
-        return Err(reject::not_found())
-    } else {
-        Ok(())
-    }
+    let mut validation = Validation::default();
+    validation.set_audience(&["api://default"]);
+    validation.leeway = 60000;
+    validation.sub = Some(String::from("awesomealpineibex@gmail.com"));
+    validation.validate_exp = false;
 }
 
 #[derive(Debug)]
