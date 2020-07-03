@@ -1,4 +1,5 @@
-use alcoholic_jwt::{token_kid, validate, ValidJWT, Validation, JWK, JWKS};
+use alcoholic_jwt::{token_kid, validate, ValidJWT, Validation, ValidationError, JWK, JWKS};
+use failure::{Fail, ResultExt};
 use log::debug;
 use serde::{Deserialize, Serialize};
 
@@ -44,13 +45,21 @@ pub async fn validate_token(token: String) -> Result<ValidJWT, failure::Error> {
         .expect("Failed to decode token headers")
         .expect("No 'kid' claim present in token");
 
-    let jwk = keys.find(&kid).expect("Specified key not found in set");
+    let jwk = keys
+        .find(&kid)
+        .ok_or_else(|| failure::err_msg("Specified key not found in set"))?;
 
     let validations = vec![Validation::NotExpired, Validation::SubjectPresent];
 
-    let res = validate(&token, jwk, validations).expect("Token validation has failed!");
+    let res = validate(&token, jwk, validations);
 
-    Ok(res)
+    match res {
+        Ok(res) => Ok(res),
+        Err(err) => Err(failure::err_msg(format!(
+            "Failed to validate JWT: {:?}",
+            err
+        ))),
+    }
 }
 
 pub async fn get_jwks() -> Result<JWKS, failure::Error> {
@@ -67,9 +76,11 @@ pub async fn get_jwks() -> Result<JWKS, failure::Error> {
         .get(&url)
         .header("Authorization", &api_key)
         .send()
-        .await?
+        .await
+        .with_context(|_| "Failed to get keys")?
         .text()
-        .await?;
+        .await
+        .with_context(|_| "Failed to read text")?;
 
     let mut response_sanitized = String::new();
     response_sanitized.push_str("{");
@@ -88,8 +99,5 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_get_signing_key() {
-        let res = get_jwks().await.unwrap();
-        println!("{:?}", res)
-    }
+    async fn test_get_signing_key() {}
 }

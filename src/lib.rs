@@ -5,26 +5,24 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use jsonwebtoken::{dangerous_unsafe_decode, decode, decode_header};
-use jsonwebtoken::errors::ErrorKind;
 use serde::{Deserialize, Serialize};
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::Solution;
-use warp::{Error, Filter, reject, Rejection, Reply};
 use warp::http::Method;
 use warp::reject::MissingHeader;
+use warp::{reject, Error, Filter, Rejection, Reply};
 
-use crate::user::{User, UserFail, set_user_details, get_user_claims};
+use crate::user::{get_user_claims, set_user_details, User, UserFail};
 use chrono::{NaiveDateTime, Utc};
 
+mod auth;
 mod geocoding;
+mod mapbox;
 mod redis_manager;
 mod request;
 mod solver;
 mod user;
-mod mapbox;
-mod auth;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -97,7 +95,6 @@ pub async fn start_server(addr: SocketAddr) {
         .and(warp::body::json())
         .and_then(trip);
 
-
     let routes = trip
         .or(user_extractor)
         .or(create_user)
@@ -111,15 +108,14 @@ pub async fn start_server(addr: SocketAddr) {
         .with(&cors);
 
     println!("Server is starting on {}", addr);
-    warp::serve(routes)
-        .run(addr).await;
+    warp::serve(routes).run(addr).await;
 }
 
 pub async fn receive_and_search_coordinates(
     token: String,
     postcode: String,
 ) -> Result<impl warp::Reply, Infallible> {
-    get_user_claims(token).await;
+    get_user_claims(token).await.unwrap();
     let result = geocoding::reverse_search(postcode);
     Ok(result)
 }
@@ -127,21 +123,24 @@ pub async fn receive_and_search_coordinates(
 pub async fn receive_and_search_postcode(
     lat: f64,
     lon: f64,
-    token: String
+    token: String,
 ) -> Result<impl warp::Reply, Infallible> {
-    get_user_claims(token).await;
+    get_user_claims(token).await.unwrap();
     let result = geocoding::forward_search(vec![lat, lon]);
     Ok(result)
 }
 
 pub async fn trip(token: String, _request: Problem) -> Result<impl warp::Reply, Infallible> {
-    get_user_claims(token).await;
+    get_user_claims(token).await.unwrap();
     // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")
 }
 
-pub async fn simple_trip(token: String, trip: request::SimpleTrip) -> Result<impl warp::Reply, Infallible> {
-    get_user_claims(token).await;
+pub async fn simple_trip(
+    token: String,
+    trip: request::SimpleTrip,
+) -> Result<impl warp::Reply, Infallible> {
+    get_user_claims(token).await.unwrap();
     // TODO [#29]: add some concurrency here
     // Convert simple trip to internal problem
     let problem = trip.clone().convert_to_internal_problem().await;
@@ -167,16 +166,26 @@ pub async fn simple_trip(token: String, trip: request::SimpleTrip) -> Result<imp
     Ok(warp::reply::json(&context.solution))
 }
 
-fn get_core_problem(problem: Problem, matrices: Option<Vec<Matrix>>) -> Arc<vrp_core::models::Problem> {
+fn get_core_problem(
+    problem: Problem,
+    matrices: Option<Vec<Matrix>>,
+) -> Arc<vrp_core::models::Problem> {
     Arc::new(
-        if let Some(matrices) = matrices { (problem, matrices).read_pragmatic() } else { problem.read_pragmatic() }
-            .ok()
-            .unwrap(),
+        if let Some(matrices) = matrices {
+            (problem, matrices).read_pragmatic()
+        } else {
+            problem.read_pragmatic()
+        }
+        .ok()
+        .unwrap(),
     )
 }
 
-pub async fn simple_trip_matrix(token: String, trip: request::SimpleTrip) -> Result<impl warp::Reply, Rejection> {
-    get_user_claims(token).await;
+pub async fn simple_trip_matrix(
+    token: String,
+    trip: request::SimpleTrip,
+) -> Result<impl warp::Reply, Rejection> {
+    get_user_claims(token).await.unwrap();
     if let Err(err) = apply_mapbox_max_jobs(&trip) {
         return Err(err);
     }
@@ -212,13 +221,15 @@ fn apply_mapbox_max_jobs(trip: &request::SimpleTrip) -> std::result::Result<(), 
 }
 
 async fn build_matrix(trip: &request::SimpleTrip) -> Matrix {
-    let matrix_vehicles: Vec<Vec<f64>> = trip.clone()
+    let matrix_vehicles: Vec<Vec<f64>> = trip
+        .clone()
         .coordinate_vehicles
         .iter()
         .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
         .map(|location| vec![location.lng, location.lat])
         .collect();
-    let matrix_jobs: Vec<Vec<f64>> = trip.clone()
+    let matrix_jobs: Vec<Vec<f64>> = trip
+        .clone()
         .coordinate_jobs
         .iter()
         .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
@@ -231,8 +242,11 @@ async fn build_matrix(trip: &request::SimpleTrip) -> Matrix {
     mapbox::convert_to_vrp_matrix(internal_matrix).await
 }
 
-pub async fn simple_trip_async(token: String, _trip: request::SimpleTrip) -> Result<impl warp::Reply, Rejection> {
-    get_user_claims(token).await;
+pub async fn simple_trip_async(
+    token: String,
+    _trip: request::SimpleTrip,
+) -> Result<impl warp::Reply, Rejection> {
+    get_user_claims(token).await.unwrap();
     tokio::task::spawn(async { println!("Hey, i'm gonna be another task") });
     // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")

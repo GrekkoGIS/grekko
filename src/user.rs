@@ -2,9 +2,6 @@ use crate::auth::validate_token;
 use crate::{redis_manager, Claims};
 use alcoholic_jwt::token_kid;
 use chrono::{NaiveDateTime, Utc};
-use jsonwebtoken::{
-    dangerous_unsafe_decode, decode, decode_header, Algorithm, DecodingKey, TokenData, Validation,
-};
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -73,19 +70,6 @@ async fn decode_token(token: String) -> Value {
         .expect("Failed to unwrap the token");
 
     token_data.claims
-}
-
-fn decode_admin(token: String) {
-    let tokens: Vec<&str> = token.split("Bearer ").collect();
-    let token = tokens.get(1).unwrap().clone();
-    let result = dangerous_unsafe_decode::<Claims>(&token);
-    let claims = result.unwrap().claims;
-
-    let mut validation = Validation::default();
-    validation.set_audience(&["api://default"]);
-    validation.leeway = 60000;
-    validation.sub = Some(String::from("awesomealpineibex@gmail.com"));
-    validation.validate_exp = false;
 }
 
 #[derive(Debug)]
