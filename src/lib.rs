@@ -24,6 +24,7 @@ mod request;
 mod solver;
 mod user;
 mod mapbox;
+mod auth;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {

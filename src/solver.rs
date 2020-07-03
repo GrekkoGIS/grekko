@@ -1088,9 +1088,9 @@ mod tests {
 
         let problem = String::from(problem_text).read_pragmatic();
         let problem = Arc::new(problem.expect("Problem could not be marshalled to an arc"));
-        let (solution, _) = solve_problem(create_solver(problem.clone()));
+        let (solution, _, _) = solve_problem(create_solver(problem.clone()));
 
-        let solution: Solution =
+        let (solution, _) =
             solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
         let problem: Problem = get_pragmatic_problem(problem_text);
 

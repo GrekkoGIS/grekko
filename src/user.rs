@@ -1,10 +1,15 @@
+use crate::auth::validate_token;
+use crate::{redis_manager, Claims};
+use alcoholic_jwt::token_kid;
+use chrono::{NaiveDateTime, Utc};
+use jsonwebtoken::{
+    dangerous_unsafe_decode, decode, decode_header, Algorithm, DecodingKey, TokenData, Validation,
+};
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
-use warp::{reject, Reply, Rejection};
+use serde_json::Value;
 use warp::reply::Response;
-use jsonwebtoken::{dangerous_unsafe_decode, Validation, decode, TokenData, DecodingKey, Algorithm, decode_header};
-use crate::{Claims, redis_manager};
-use chrono::{NaiveDateTime, Utc};
+use warp::{reject, Rejection, Reply};
 
 #[derive(Serialize, Deserialize)]
 pub struct User {
@@ -34,9 +39,8 @@ impl fmt::Display for User {
     }
 }
 
-
 pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejection> {
-    decode_token(user.clone());
+    let uid = decode_token(user.clone()).await;
     let result = redis_manager::get::<User>("USERS", user.as_str());
     match result {
         None => Err(reject::custom(UserFail::new(user))),
@@ -45,7 +49,7 @@ pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejectio
 }
 
 pub async fn set_user_details(token: String, user: User) -> Result<impl warp::Reply, Rejection> {
-    decode_token(token);
+    decode_token(token).await;
     let id = user.id.clone();
     let id = id.as_str();
     let result = redis_manager::set::<User>("USERS", id, user);
@@ -55,29 +59,20 @@ pub async fn set_user_details(token: String, user: User) -> Result<impl warp::Re
     }
 }
 
-pub async fn get_user_claims(
-    token: String,
-) -> Result<impl Reply, Rejection> {
-    let uid = decode_token(token).claims.uid;
+pub async fn get_user_claims(token: String) -> Result<impl Reply, Rejection> {
+    let uid = decode_token(token).await.get("uid").unwrap().to_string();
     get_user_details(uid).await
 }
 
-fn decode_token(token: String) -> TokenData<Claims> {
+async fn decode_token(token: String) -> Value {
     let token: Vec<&str> = token.split("Bearer ").collect();
-    let token = token.get(1).unwrap().clone();
-    let mut validation = Validation::default();
+    let token = token.get(1).expect("Failed to get the token index").clone();
 
-    validation.set_audience(&["api://default"]);
-    validation.leeway = 60;
-    validation.iss = Some(String::from("https://dev-201460.okta.com/oauth2/default"));
-    validation.validate_exp = true;
-    validation.algorithms = vec![Algorithm::RS256, Algorithm::HS256, Algorithm::RS512];
+    let token_data = validate_token(token.to_string())
+        .await
+        .expect("Failed to unwrap the token");
 
-    log::debug!("Validation: {:?}", validation);
-
-    let header = decode_header(&token);
-    log::debug!("Token header: {:?}", header);
-    decode::<Claims>(&token, &DecodingKey::from_secret("".as_ref()), &validation).unwrap()
+    token_data.claims
 }
 
 fn decode_admin(token: String) {
@@ -106,4 +101,12 @@ impl UserFail {
             message: format!("Unable to find a user with id `{}`", id),
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_get_user_claims() {}
 }
