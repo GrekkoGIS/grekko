@@ -1,7 +1,8 @@
 use crate::auth::validate_token;
-use crate::{redis_manager, Claims};
+use crate::redis_manager;
 use alcoholic_jwt::token_kid;
 use chrono::{NaiveDateTime, Utc};
+use failure::ResultExt;
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -45,7 +46,7 @@ pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejectio
     }
 }
 
-pub async fn set_user_details(token: String, user: User) -> Result<impl warp::Reply, Rejection> {
+pub async fn set_user_details(token: String, user: User) -> Result<impl Reply, Rejection> {
     decode_token(token).await;
     let id = user.id.clone();
     let id = id.as_str();
@@ -57,19 +58,27 @@ pub async fn set_user_details(token: String, user: User) -> Result<impl warp::Re
 }
 
 pub async fn get_user_claims(token: String) -> Result<impl Reply, Rejection> {
-    let uid = decode_token(token).await.get("uid").unwrap().to_string();
+    let uid = decode_token(token)
+        .await
+        .or_else(|_| Err(warp::reject()))?
+        .get("uid")
+        .ok_or_else(|| failure::err_msg("Failed to decode token").compat())
+        .unwrap()
+        .to_string();
     get_user_details(uid).await
 }
 
-async fn decode_token(token: String) -> Value {
+async fn decode_token(token: String) -> Result<Value, failure::Error> {
     let token: Vec<&str> = token.split("Bearer ").collect();
-    let token = token.get(1).expect("Failed to get the token index").clone();
+    let token = token
+        .get(1)
+        .ok_or_else(|| failure::err_msg("Failed to get the token index"))?;
 
     let token_data = validate_token(token.to_string())
         .await
-        .expect("Failed to unwrap the token");
+        .with_context(|_| "Failed to unwrap the token")?;
 
-    token_data.claims
+    Ok(token_data.claims)
 }
 
 #[derive(Debug)]

@@ -24,20 +24,6 @@ mod request;
 mod solver;
 mod user;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    ver: i32,
-    jti: String,
-    iss: String,
-    aud: String,
-    iat: i64,
-    exp: i64,
-    cid: String,
-    uid: String,
-    scp: Vec<String>,
-    sub: String,
-}
-
 pub async fn start_server(addr: SocketAddr) {
     tokio::task::spawn(async {
         geocoding::get_postcodes();
