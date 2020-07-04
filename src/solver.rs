@@ -10,8 +10,14 @@ pub fn get_pragmatic_problem(problem_text: &str) -> Problem {
     deserialize_problem(BufReader::new(problem_text.as_bytes())).unwrap()
 }
 
-pub fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> (Solution, String) {
-    (build_pragmatic_solution(&problem, &solution), build_geo_json(&problem, &solution))
+pub fn get_pragmatic_solution(
+    problem: &CoreProblem,
+    solution: &CoreSolution,
+) -> (Solution, String) {
+    (
+        build_pragmatic_solution(&problem, &solution),
+        build_geo_json(&problem, &solution),
+    )
 }
 
 pub fn build_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {
@@ -33,7 +39,10 @@ pub fn build_geo_json(problem: &CoreProblem, solution: &CoreSolution) -> String 
         .write_geo_json(&problem, writer)
         .expect("Unable to write geojson");
 
-    BufReader::new(buffer_geojson.as_bytes()).lines().map(|l| l.unwrap()).collect()
+    BufReader::new(buffer_geojson.as_bytes())
+        .lines()
+        .map(|l| l.unwrap())
+        .collect()
 }
 
 pub fn create_solver(problem: Arc<CoreProblem>) -> Solver {

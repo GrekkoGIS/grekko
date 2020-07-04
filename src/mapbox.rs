@@ -30,10 +30,12 @@ pub struct Source {
 }
 
 pub async fn get_matrix(coordinates: Vec<Vec<f64>>) -> Option<Matrix> {
-    let coords: String = coordinates.iter().map(|long_lat| {
-        let coords_cols_str: Vec<String> = long_lat.iter().map(ToString::to_string).collect();
-        coords_cols_str.join(",")
-    })
+    let coords: String = coordinates
+        .iter()
+        .map(|long_lat| {
+            let coords_cols_str: Vec<String> = long_lat.iter().map(ToString::to_string).collect();
+            coords_cols_str.join(",")
+        })
         .collect::<Vec<String>>()
         .join(";");
 
@@ -42,16 +44,22 @@ pub async fn get_matrix(coordinates: Vec<Vec<f64>>) -> Option<Matrix> {
     let client = reqwest::Client::new();
 
     println!("{}", coords);
-    let url = format!("https://api.mapbox.com/directions-matrix/v1/mapbox/driving/{}", coords.as_str());
-    let response_body = client.get(&url)
+    let url = format!(
+        "https://api.mapbox.com/directions-matrix/v1/mapbox/driving/{}",
+        coords.as_str()
+    );
+    let response_body = client
+        .get(&url)
         .query(&[
             ("access_token", access_token.as_str()),
-            ("annotations", "distance,duration")
+            ("annotations", "distance,duration"),
         ])
         .send()
-        .await.ok()?
+        .await
+        .ok()?
         .text()
-        .await.ok()?;
+        .await
+        .ok()?;
 
     let matrix: Matrix = serde_json::from_str(response_body.as_str()).ok()?;
     println!("{:#?}", matrix);
@@ -62,9 +70,17 @@ pub async fn convert_to_vrp_matrix(internal_matrix: Matrix) -> VrpMatrix {
     let matrix = VrpMatrix {
         profile: Some("car".to_string()),
         timestamp: None,
-        travel_times: internal_matrix.durations[0].clone().iter().map(|val| val.clone() as i64).collect(),
-        distances: internal_matrix.distances[0].clone().iter().map(|val| val.clone() as i64).collect(),
-        error_codes: None
+        travel_times: internal_matrix.durations[0]
+            .clone()
+            .iter()
+            .map(|val| val.clone() as i64)
+            .collect(),
+        distances: internal_matrix.distances[0]
+            .clone()
+            .iter()
+            .map(|val| val.clone() as i64)
+            .collect(),
+        error_codes: None,
     };
     matrix
 }
@@ -78,9 +94,11 @@ mod tests {
         let code = get_matrix(vec![
             vec![-1.080278, 53.958332],
             vec![-2.220000, 52.192001],
-            vec![-1.308000, 51.063202]
+            vec![-1.308000, 51.063202],
         ])
-            .await.unwrap().code;
+        .await
+        .unwrap()
+        .code;
         assert_eq!(code, "Ok")
     }
 }

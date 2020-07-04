@@ -1,13 +1,12 @@
 use std::fs::File;
 
 use csv::{Reader, StringRecord};
-use redis::{AsyncCommands, Client, Commands, Connection, Pipeline, RedisResult};
+use redis::{Client, Commands, Connection, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
 
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
-use itertools::Itertools;
 
 fn connect_and_query<F, T>(mut action: F) -> Option<T>
 where
@@ -69,7 +68,7 @@ pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<S
 
     match result {
         Err(err) => {
-            eprintln!("Couldn't write to redis, reason: {:?}", err.detail());
+            log::error!("Couldn't write to redis, reason: {:?}", err.detail());
             None
         }
         Ok(res) => {
@@ -77,6 +76,7 @@ pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<S
                 "Wrote {} to table: {} with key {} and result {}",
                 value, table, key, res
             );
+            log::debug!("{}", msg);
             Some(msg)
         }
     }

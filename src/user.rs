@@ -38,7 +38,6 @@ impl fmt::Display for User {
 }
 
 pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejection> {
-    let uid = decode_token(user.clone()).await;
     let result = redis_manager::get::<User>("USERS", user.as_str());
     match result {
         None => Err(reject::custom(UserFail::new(user))),
@@ -47,7 +46,6 @@ pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejectio
 }
 
 pub async fn set_user_details(token: String, user: User) -> Result<impl Reply, Rejection> {
-    decode_token(token).await;
     let id = user.id.clone();
     let id = id.as_str();
     let result = redis_manager::set::<User>("USERS", id, user);
@@ -57,7 +55,7 @@ pub async fn set_user_details(token: String, user: User) -> Result<impl Reply, R
     }
 }
 
-pub async fn get_user_claims(token: String) -> Result<impl Reply, Rejection> {
+pub async fn get_user_from_token(token: String) -> Result<impl Reply, Rejection> {
     let valid_jwt = decode_token(token).await.or_else(|err| {
         log::error!("{:?}", err);
         Err(warp::reject())
@@ -72,9 +70,10 @@ pub async fn get_user_claims(token: String) -> Result<impl Reply, Rejection> {
 }
 
 async fn decode_token(token: String) -> Result<ValidJWT, failure::Error> {
+    let token_index = 1;
     let token: Vec<&str> = token.split("Bearer ").collect();
     let token = token
-        .get(1)
+        .get(token_index)
         .ok_or_else(|| failure::err_msg("Failed to get the token index"))?;
 
     let token_data = validate_token(token.to_string())
