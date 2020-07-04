@@ -30,7 +30,11 @@ jobs:
         with:
           toolchain: nightly
           override: true
+        env:
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
       - name: Run cargo bloat
         uses: orf/cargo-bloat-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}

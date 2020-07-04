@@ -41,6 +41,8 @@ jobs:
         uses: actions-rs/tarpaulin@v0.1
         with:
           args: '-t 640'
+        env:
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:

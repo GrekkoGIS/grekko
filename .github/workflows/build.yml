@@ -42,10 +42,13 @@ jobs:
           command: test
           args: --all-features --no-fail-fast
         env:
-          CARGO_INCREMENTAL: "0"
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          CARGO_INCREMENTAL: "1"
           RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests"
       - name: Build release
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --release --all-features
+        env:
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
