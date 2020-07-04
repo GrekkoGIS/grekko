@@ -90,7 +90,6 @@ pub async fn get_user_from_token(token: String) -> Result<impl Reply, Rejection>
 
 #[cfg(test)]
 mod tests {
-    
 
     #[tokio::test]
     async fn test_get_user_claims() {}

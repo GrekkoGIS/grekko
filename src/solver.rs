@@ -65,12 +65,9 @@ mod tests {
 
     use vrp_pragmatic::checker::CheckerContext;
     use vrp_pragmatic::format::problem::{PragmaticProblem, Problem};
-    
 
     use crate::solver;
-    use crate::solver::{
-        create_solver, get_pragmatic_problem, solve_problem,
-    };
+    use crate::solver::{create_solver, get_pragmatic_problem, solve_problem};
 
     #[test]
     fn test_pragmatic() {
