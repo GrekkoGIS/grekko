@@ -1,12 +1,13 @@
 use std::fs::File;
 
-use csv::Reader;
-use redis::{Client, Commands, Connection, RedisResult};
+use csv::{Reader, StringRecord};
+use redis::{AsyncCommands, Client, Commands, Connection, Pipeline, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
 
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
+use itertools::Itertools;
 
 fn connect_and_query<F, T>(mut action: F) -> Option<T>
 where
@@ -88,6 +89,7 @@ pub fn count(table: &str) -> i32 {
     con.hlen(table).unwrap()
 }
 
+// TODO: decouple this
 pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
     let records = reader.records();
     let client: Client = get_redis_client().unwrap();
@@ -107,15 +109,8 @@ pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
         pipeline
             .hset(
                 POSTCODE_TABLE_NAME,
-                row.get(postcode_index)
-                    .unwrap()
-                    .to_string()
-                    .replace(" ", ""),
-                format!(
-                    "{};{}",
-                    row.get(lat_index).unwrap(),
-                    row.get(lon_index).unwrap()
-                ),
+                build_row_field(postcode_index, row),
+                build_row_value(lat_index, lon_index, row),
             )
             .ignore();
     });
@@ -135,6 +130,22 @@ pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
             None
         }
     }
+}
+
+// TODO: move these away
+fn build_row_value(lat_index: usize, lon_index: usize, row: &StringRecord) -> String {
+    format!(
+        "{};{}",
+        row.get(lat_index).unwrap(),
+        row.get(lon_index).unwrap()
+    )
+}
+
+fn build_row_field(postcode_index: usize, row: &StringRecord) -> String {
+    row.get(postcode_index)
+        .unwrap()
+        .to_string()
+        .replace(" ", "")
 }
 
 #[cfg(test)]
