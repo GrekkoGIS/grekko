@@ -1,13 +1,13 @@
 use crate::auth::validate_token;
 use crate::redis_manager;
-use alcoholic_jwt::token_kid;
+use alcoholic_jwt::{token_kid, ValidJWT};
 use chrono::{NaiveDateTime, Utc};
 use failure::ResultExt;
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use warp::reply::Response;
-use warp::{reject, Rejection, Reply};
+use warp::{reject, Error, Rejection, Reply};
 
 #[derive(Serialize, Deserialize)]
 pub struct User {
@@ -53,22 +53,25 @@ pub async fn set_user_details(token: String, user: User) -> Result<impl Reply, R
     let result = redis_manager::set::<User>("USERS", id, user);
     match result {
         Some(value) => Ok(warp::reply::json(&value)),
-        None => Err(reject()),
+        None => Err(reject::reject()),
     }
 }
 
 pub async fn get_user_claims(token: String) -> Result<impl Reply, Rejection> {
-    let uid = decode_token(token)
-        .await
-        .or_else(|_| Err(warp::reject()))?
-        .get("uid")
-        .ok_or_else(|| failure::err_msg("Failed to decode token").compat())
-        .unwrap()
-        .to_string();
+    let valid_jwt = decode_token(token).await.or_else(|err| {
+        log::error!("{:?}", err);
+        Err(warp::reject())
+    })?;
+
+    let uid = get_uid(valid_jwt).await.or_else(|err| {
+        log::error!("{:?}", err);
+        Err(warp::reject())
+    })?;
+
     get_user_details(uid).await
 }
 
-async fn decode_token(token: String) -> Result<Value, failure::Error> {
+async fn decode_token(token: String) -> Result<ValidJWT, failure::Error> {
     let token: Vec<&str> = token.split("Bearer ").collect();
     let token = token
         .get(1)
@@ -78,7 +81,15 @@ async fn decode_token(token: String) -> Result<Value, failure::Error> {
         .await
         .with_context(|_| "Failed to unwrap the token")?;
 
-    Ok(token_data.claims)
+    Ok(token_data)
+}
+async fn get_uid(token_data: ValidJWT) -> Result<String, failure::Error> {
+    let uid = token_data
+        .claims
+        .get("uid")
+        .ok_or_else(|| failure::err_msg("uid could not be found in jwk"))?
+        .to_string();
+    Ok(uid)
 }
 
 #[derive(Debug)]
