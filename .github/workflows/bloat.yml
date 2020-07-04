@@ -36,8 +36,8 @@ jobs:
       - name: Install udeps
         uses: actions-rs/cargo@v1
         with:
-          command: install cargo-udeps
-          args: --locked
+          command: install
+          args: cargo-udeps --locked
         env:
           OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
       - name: Run udeps
