@@ -43,6 +43,9 @@ Brain dump of otherwise stuff to add:
 - event driven 
 - can also work with elixir to delegate threads
 - auth work with frontend
-- 
+- decent error handling
+- decent logs too
+- performance refactoring
+- use proper encapsulations
 
 Add creds to libraries, data stuff
