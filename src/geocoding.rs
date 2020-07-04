@@ -211,9 +211,9 @@ mod tests {
     fn test_build_cache_key() {
         let key = "IMAGINARY; -,POSTCODE";
         let key = build_cache_key(String::from(key));
-        assert!(!key.contains(" "));
-        assert!(!key.contains("-"));
-        assert!(!key.contains(","));
+        assert!(!key.contains(' '));
+        assert!(!key.contains('-'));
+        assert!(!key.contains(','));
         assert!(!key.contains(COORDINATES_SEPARATOR));
         assert_eq!(key, "IMAGINARYPOSTCODE")
     }

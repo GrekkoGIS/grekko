@@ -1,7 +1,7 @@
-use alcoholic_jwt::{token_kid, validate, ValidJWT, Validation, ValidationError, JWK, JWKS};
-use failure::{Fail, ResultExt};
+use alcoholic_jwt::{token_kid, validate, ValidJWT, Validation, JWKS};
+use failure::{ResultExt};
 use log::debug;
-use serde::{Deserialize, Serialize};
+
 
 pub async fn validate_token(token: String) -> Result<ValidJWT, failure::Error> {
     let keys = get_jwks().await?;
@@ -84,7 +84,7 @@ pub(crate) async fn get_uid(token_data: ValidJWT) -> Result<String, failure::Err
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
 
     #[tokio::test]
     async fn test_get_signing_key() {}

@@ -1,10 +1,11 @@
 extern crate grekko;
 
+use grekko::geocoding::{receive_and_search_coordinates, receive_and_search_postcode};
 use warp::reply::Reply;
 
 #[tokio::test]
 async fn test_geocoding_forward() {
-    let result = grekko::receive_and_search_postcode(57.099011, -2.252854)
+    let result = receive_and_search_postcode(57.099011, -2.252854, String::from(""))
         .await
         .unwrap();
     let result = result.into_response();
@@ -20,7 +21,7 @@ async fn test_geocoding_forward() {
 
 #[tokio::test]
 async fn test_geocoding_reverse() {
-    let result = grekko::receive_and_search_coordinates("AB1-0AJ".to_string())
+    let result = receive_and_search_coordinates(String::from(""), "AB1-0AJ".to_string())
         .await
         .unwrap()
         .into_response()

@@ -5,19 +5,17 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use chrono::{NaiveDateTime, Utc};
-use serde::{Deserialize, Serialize};
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
-use vrp_pragmatic::format::solution::Solution;
+
 use warp::http::Method;
-use warp::reject::MissingHeader;
+
 use warp::{reject, Error, Filter, Rejection, Reply};
 
-use crate::user::{get_user_from_token, set_user_details, User, UserFail};
+use crate::user::get_user_from_token;
 
 pub mod auth;
-mod geocoding;
+pub mod geocoding;
 mod mapbox;
 mod redis_manager;
 mod request;
