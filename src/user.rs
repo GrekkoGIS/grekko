@@ -1,7 +1,5 @@
 use crate::auth;
-use crate::auth::validate_token;
 use crate::redis_manager;
-use alcoholic_jwt::{token_kid, ValidJWT};
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
 use warp::reply::Response;
@@ -58,10 +56,18 @@ pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejectio
     }
 }
 
-pub async fn set_user_details(_token: String, user: User) -> Result<impl Reply, Rejection> {
-    let id = user.id.clone();
-    let id = id.as_str();
-    let result = redis_manager::set::<User>("USERS", id, user);
+pub async fn set_user_details(token: String, user: User) -> Result<impl Reply, Rejection> {
+    let valid_jwt = auth::decode_token(token).await.or_else(|err| {
+        log::error!("{:?}", err);
+        Err(warp::reject())
+    })?;
+
+    let uid = auth::get_uid(valid_jwt).await.or_else(|err| {
+        log::error!("{:?}", err);
+        Err(warp::reject())
+    })?;
+
+    let result = redis_manager::set::<User>("USERS", &uid, user);
     match result {
         Some(value) => Ok(warp::reply::json(&value)),
         None => Err(reject::reject()),
