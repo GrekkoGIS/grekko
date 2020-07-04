@@ -165,7 +165,7 @@ mod tests {
             .write_record(&["TEST1", "0.0", "0.0"])
             .expect("Unable to write test record");
         let mut reader = csv::Reader::from_path(&file_name).expect("Issue reading test.csv");
-        let set_count = bulk_set(&mut reader);
+        let set_count = bulk_set(&mut reader, POSTCODE_TABLE_NAME);
         fs::remove_file(&file_name).unwrap();
         assert_eq!(set_count, Some(()));
     }
