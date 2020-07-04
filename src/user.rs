@@ -1,13 +1,11 @@
+use crate::auth;
 use crate::auth::validate_token;
 use crate::redis_manager;
 use alcoholic_jwt::{token_kid, ValidJWT};
-use chrono::{NaiveDateTime, Utc};
-use failure::ResultExt;
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use warp::reply::Response;
-use warp::{reject, Error, Rejection, Reply};
+use warp::{reject, Rejection, Reply};
 
 #[derive(Serialize, Deserialize)]
 pub struct User {
@@ -37,60 +35,6 @@ impl fmt::Display for User {
     }
 }
 
-pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejection> {
-    let result = redis_manager::get::<User>("USERS", user.as_str());
-    match result {
-        None => Err(reject::custom(UserFail::new(user))),
-        Some(res) => Ok(warp::reply::json(&res)),
-    }
-}
-
-pub async fn set_user_details(token: String, user: User) -> Result<impl Reply, Rejection> {
-    let id = user.id.clone();
-    let id = id.as_str();
-    let result = redis_manager::set::<User>("USERS", id, user);
-    match result {
-        Some(value) => Ok(warp::reply::json(&value)),
-        None => Err(reject::reject()),
-    }
-}
-
-pub async fn get_user_from_token(token: String) -> Result<impl Reply, Rejection> {
-    let valid_jwt = decode_token(token).await.or_else(|err| {
-        log::error!("{:?}", err);
-        Err(warp::reject())
-    })?;
-
-    let uid = get_uid(valid_jwt).await.or_else(|err| {
-        log::error!("{:?}", err);
-        Err(warp::reject())
-    })?;
-
-    get_user_details(uid).await
-}
-
-async fn decode_token(token: String) -> Result<ValidJWT, failure::Error> {
-    let token_index = 1;
-    let token: Vec<&str> = token.split("Bearer ").collect();
-    let token = token
-        .get(token_index)
-        .ok_or_else(|| failure::err_msg("Failed to get the token index"))?;
-
-    let token_data = validate_token(token.to_string())
-        .await
-        .with_context(|_| "Failed to unwrap the token")?;
-
-    Ok(token_data)
-}
-async fn get_uid(token_data: ValidJWT) -> Result<String, failure::Error> {
-    let uid = token_data
-        .claims
-        .get("uid")
-        .ok_or_else(|| failure::err_msg("uid could not be found in jwk"))?
-        .to_string();
-    Ok(uid)
-}
-
 #[derive(Debug)]
 pub struct UserFail {
     message: String,
@@ -104,6 +48,38 @@ impl UserFail {
             message: format!("Unable to find a user with id `{}`", id),
         }
     }
+}
+
+pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejection> {
+    let result = redis_manager::get::<User>("USERS", user.as_str());
+    match result {
+        None => Err(reject::custom(UserFail::new(user))),
+        Some(res) => Ok(warp::reply::json(&res)),
+    }
+}
+
+pub async fn set_user_details(_token: String, user: User) -> Result<impl Reply, Rejection> {
+    let id = user.id.clone();
+    let id = id.as_str();
+    let result = redis_manager::set::<User>("USERS", id, user);
+    match result {
+        Some(value) => Ok(warp::reply::json(&value)),
+        None => Err(reject::reject()),
+    }
+}
+
+pub async fn get_user_from_token(token: String) -> Result<impl Reply, Rejection> {
+    let valid_jwt = auth::decode_token(token).await.or_else(|err| {
+        log::error!("{:?}", err);
+        Err(warp::reject())
+    })?;
+
+    let uid = auth::get_uid(valid_jwt).await.or_else(|err| {
+        log::error!("{:?}", err);
+        Err(warp::reject())
+    })?;
+
+    get_user_details(uid).await
 }
 
 #[cfg(test)]

@@ -5,6 +5,8 @@ use serde::Deserialize;
 use vrp_pragmatic::format::Location;
 
 use crate::redis_manager;
+use crate::user::get_user_from_token;
+use failure::_core::convert::Infallible;
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -159,6 +161,25 @@ pub fn forward_search_file(lat_lon: Vec<f64>) -> String {
 
 pub fn read_geocoding_csv() -> Reader<File> {
     csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv")
+}
+
+pub async fn receive_and_search_coordinates(
+    token: String,
+    postcode: String,
+) -> Result<impl warp::Reply, Infallible> {
+    get_user_from_token(token).await.unwrap();
+    let result = reverse_search(postcode);
+    Ok(result)
+}
+
+pub async fn receive_and_search_postcode(
+    lat: f64,
+    lon: f64,
+    token: String,
+) -> Result<impl warp::Reply, Infallible> {
+    get_user_from_token(token).await.unwrap();
+    let result = forward_search(vec![lat, lon]);
+    Ok(result)
 }
 
 #[cfg(test)]

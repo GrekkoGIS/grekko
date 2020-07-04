@@ -3,41 +3,6 @@ use failure::{Fail, ResultExt};
 use log::debug;
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AuthKey {
-    pub kty: String,
-    pub status: String,
-    pub alg: String,
-    pub kid: String,
-    #[serde(rename = "use")]
-    pub use_field: String,
-    #[serde(rename = "_links")]
-    pub links: Links,
-    pub e: String,
-    pub n: String,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Links {
-    #[serde(rename = "self")]
-    pub self_field: SelfField,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SelfField {
-    pub href: String,
-    pub hints: Hints,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Hints {
-    pub allow: Vec<String>,
-}
-
 pub async fn validate_token(token: String) -> Result<ValidJWT, failure::Error> {
     let keys = get_jwks().await?;
 
@@ -62,9 +27,10 @@ pub async fn validate_token(token: String) -> Result<ValidJWT, failure::Error> {
     }
 }
 
+// TODO: don't do this alot
 pub async fn get_jwks() -> Result<JWKS, failure::Error> {
     let api_key = env!("OKTA_API_KEY").to_string();
-    let mut api_key = String::from("SSWS ") + &api_key;
+    let api_key = String::from("SSWS ") + &api_key;
     const URL: &str = "https://dev-201460.okta.com/api/v1";
     let client = reqwest::Client::new();
 
@@ -92,6 +58,28 @@ pub async fn get_jwks() -> Result<JWKS, failure::Error> {
 
     debug!("Got signing keys: {:?}", body);
     Ok(body)
+}
+
+pub(crate) async fn decode_token(token: String) -> Result<ValidJWT, failure::Error> {
+    let token_index = 1;
+    let token: Vec<&str> = token.split("Bearer ").collect();
+    let token = token
+        .get(token_index)
+        .ok_or_else(|| failure::err_msg("Failed to get the token index"))?;
+
+    let token_data = validate_token(token.to_string())
+        .await
+        .with_context(|_| "Failed to unwrap the token")?;
+
+    Ok(token_data)
+}
+pub(crate) async fn get_uid(token_data: ValidJWT) -> Result<String, failure::Error> {
+    let uid = token_data
+        .claims
+        .get("uid")
+        .ok_or_else(|| failure::err_msg("uid could not be found in jwk"))?
+        .to_string();
+    Ok(uid)
 }
 
 #[cfg(test)]

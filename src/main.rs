@@ -9,12 +9,14 @@ extern crate log;
 use grekko::start_server;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
+pub mod auth;
 pub mod geocoding;
 pub mod mapbox;
 pub mod osrm_service;
 pub mod redis_manager;
 pub mod request;
 pub mod solver;
+pub mod user;
 
 #[tokio::main]
 async fn main() {
