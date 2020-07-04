@@ -10,7 +10,7 @@ use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
 
 use warp::http::Method;
 
-use warp::{reject, Error, Filter, Rejection, Reply};
+use warp::{Filter, Rejection};
 
 use crate::user::get_user_from_token;
 

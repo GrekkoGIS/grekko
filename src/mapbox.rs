@@ -67,22 +67,21 @@ pub async fn get_matrix(coordinates: Vec<Vec<f64>>) -> Option<Matrix> {
 }
 
 pub async fn convert_to_vrp_matrix(internal_matrix: Matrix) -> VrpMatrix {
-    let matrix = VrpMatrix {
+    VrpMatrix {
         profile: Some("car".to_string()),
         timestamp: None,
         travel_times: internal_matrix.durations[0]
             .clone()
             .iter()
-            .map(|val| val.clone() as i64)
+            .map(|val| *val as i64)
             .collect(),
         distances: internal_matrix.distances[0]
             .clone()
             .iter()
-            .map(|val| val.clone() as i64)
+            .map(|val| *val as i64)
             .collect(),
         error_codes: None,
-    };
-    matrix
+    }
 }
 
 #[cfg(test)]

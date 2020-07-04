@@ -99,8 +99,7 @@ fn build_cache_key(query: String) -> String {
     let postcode = postcode.replace(" ", "");
     let postcode = postcode.replace("-", "");
     let postcode = postcode.replace(",", "");
-    let postcode = postcode.replace(COORDINATES_SEPARATOR, "");
-    postcode
+    postcode.replace(COORDINATES_SEPARATOR, "")
 }
 
 pub fn reverse_search_file(query: String) -> String {
@@ -185,8 +184,8 @@ pub async fn receive_and_search_postcode(
 #[cfg(test)]
 mod tests {
     use crate::geocoding::{
-        bootstrap_cache, build_cache_key, forward_search_file, get_postcodes, reverse_search_file,
-        COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME,
+        build_cache_key, forward_search_file, get_postcodes, reverse_search_file,
+        COORDINATES_SEPARATOR,
     };
 
     #[test]
