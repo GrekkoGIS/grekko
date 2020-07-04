@@ -44,7 +44,7 @@ jobs:
         env:
           OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
           CARGO_INCREMENTAL: "1"
-          RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests"
+          RUSTFLAGS: "-Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests"
       - name: Build release
         uses: actions-rs/cargo@v1
         with:
