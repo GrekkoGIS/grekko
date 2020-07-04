@@ -49,5 +49,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: udeps
+          args: --all-targets
         env:
           OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
