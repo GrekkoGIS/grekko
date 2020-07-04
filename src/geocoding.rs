@@ -28,16 +28,16 @@ cached! {
                 let count = redis_manager::count(POSTCODE_TABLE_NAME);
 
                 if count < postcode_csv_size {
-                    println!("Bootstrapping postcode cache");
-                    redis_manager::bulk_set(&mut reader);
+                    log::info!("Bootstrapping postcode cache");
+                    redis_manager::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
                     Some(())
                 } else {
-                    println!("Postcode cache was already bootstrapped");
+                    log::info!("Postcode cache was already bootstrapped");
                     Some(())
                 }
             }
             _ => {
-                println!("No available table named {}", table);
+                log::error!("No available table named {}", table);
                 None
             }
         }

@@ -90,8 +90,8 @@ pub fn count(table: &str) -> i32 {
 }
 
 // TODO: decouple this
-pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
-    let records = reader.records();
+pub fn bulk_set(csv: &mut Reader<File>, key: &str) -> Option<()> {
+    let records = csv.records();
     let client: Client = get_redis_client().unwrap();
     let mut con = client.get_connection().unwrap();
 
@@ -108,7 +108,7 @@ pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
         count += 1;
         pipeline
             .hset(
-                POSTCODE_TABLE_NAME,
+                key,
                 build_row_field(postcode_index, row),
                 build_row_value(lat_index, lon_index, row),
             )
@@ -119,14 +119,15 @@ pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
 
     match result {
         Ok(res) => {
-            println!(
+            log::info!(
                 "Finished bootstrapping {} postcodes, result: {:?}",
-                count, res
+                count,
+                res
             );
             Some(())
         }
         Err(err) => {
-            println!("Failed to write to postcodes, error: {}", err);
+            log::error!("Failed to write to postcodes, error: {}", err);
             None
         }
     }
