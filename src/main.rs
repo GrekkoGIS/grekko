@@ -24,7 +24,7 @@ async fn main() {
     let port = option_env!("SERVER_PORT")
         .or_else(|| Some("3030"))
         .unwrap()
-        .parse::<i32>()
+        .parse::<u16>()
         .unwrap();
     let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port);
     start_server(socket).await;
