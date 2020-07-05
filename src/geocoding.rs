@@ -166,7 +166,7 @@ pub async fn receive_and_search_coordinates(
     token: String,
     postcode: String,
 ) -> Result<impl warp::Reply, Infallible> {
-    get_user_from_token(token).await.unwrap();
+    // get_user_from_token(token).await.unwrap();
     let result = reverse_search(postcode);
     Ok(result)
 }
@@ -176,7 +176,7 @@ pub async fn receive_and_search_postcode(
     lon: f64,
     token: String,
 ) -> Result<impl warp::Reply, Infallible> {
-    get_user_from_token(token).await.unwrap();
+    // get_user_from_token(token).await.unwrap();
     let result = forward_search(vec![lat, lon]);
     Ok(result)
 }
