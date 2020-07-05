@@ -27,6 +27,7 @@ jobs:
           override: true
         env:
           OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}
       - name: Run cargo bloat
         uses: orf/cargo-bloat-action@v1
         with:
@@ -40,6 +41,7 @@ jobs:
           args: cargo-udeps --locked
         env:
           OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}
       - name: Run udeps
         uses: actions-rs/cargo@v1
         with:
@@ -47,3 +49,4 @@ jobs:
           args: --all-targets
         env:
           OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}

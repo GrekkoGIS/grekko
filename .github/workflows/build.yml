@@ -52,3 +52,4 @@ jobs:
           args: --release --all-features
         env:
           OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}

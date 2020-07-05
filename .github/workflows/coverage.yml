@@ -43,6 +43,7 @@ jobs:
           args: '-t 640'
         env:
           OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
