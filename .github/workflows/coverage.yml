@@ -29,7 +29,7 @@ jobs:
           redis-version: ${{ matrix.redis-version }}
       - uses: actions/checkout@v2
       - name: Cache cargo bin
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: |
             ~/.cargo/registry
