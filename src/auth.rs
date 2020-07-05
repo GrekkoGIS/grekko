@@ -2,7 +2,7 @@ use alcoholic_jwt::{token_kid, validate, ValidJWT, Validation, JWKS};
 use failure::ResultExt;
 use log::debug;
 
-pub async fn validate_token(token: String) -> Result<ValidJWT, failure::Error> {
+async fn validate_token(token: String) -> Result<ValidJWT, failure::Error> {
     let keys = get_jwks().await?;
 
     let kid = token_kid(&token)
@@ -26,8 +26,8 @@ pub async fn validate_token(token: String) -> Result<ValidJWT, failure::Error> {
     }
 }
 
-// TODO: don't do this alot
-pub async fn get_jwks() -> Result<JWKS, failure::Error> {
+// TODO: don't do this alot, needs memoizing
+async fn get_jwks() -> Result<JWKS, failure::Error> {
     let api_key = env!("OKTA_API_KEY").to_string();
     let api_key = String::from("SSWS ") + &api_key;
     const URL: &str = "https://dev-201460.okta.com/api/v1";
@@ -85,5 +85,10 @@ pub(crate) async fn get_uid(token_data: ValidJWT) -> Result<String, failure::Err
 mod tests {
 
     #[tokio::test]
-    async fn test_get_signing_key() {}
+    // TODO: test this
+    async fn test_decode_token() {}
+    // TODO: test this
+    async fn test_get_jwks() {}
+    // TODO: test this
+    async fn test_validate_token() {}
 }
