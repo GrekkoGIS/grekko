@@ -99,7 +99,6 @@ pub async fn start_server(addr: SocketAddr) {
 
 pub async fn trip(token: String, _request: Problem) -> Result<impl warp::Reply, Infallible> {
     get_user_from_token(token).await.unwrap();
-    // let result = geocoding::search_postcode(vec![lat, lon]);
     Ok("result")
 }
 
