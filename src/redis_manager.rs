@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use csv::Reader;
+use csv::{Reader, StringRecord};
 use redis::{Client, Commands, Connection, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
@@ -68,7 +68,7 @@ pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<S
 
     match result {
         Err(err) => {
-            eprintln!("Couldn't write to redis, reason: {:?}", err.detail());
+            log::error!("Couldn't write to redis, reason: {:?}", err.detail());
             None
         }
         Ok(res) => {
@@ -76,7 +76,7 @@ pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<S
                 "Wrote {} to table: {} with key {} and result {}",
                 value, table, key, res
             );
-            println!("{}", msg);
+            log::debug!("{}", msg);
             Some(msg)
         }
     }
@@ -89,8 +89,9 @@ pub fn count(table: &str) -> i32 {
     con.hlen(table).unwrap()
 }
 
-pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
-    let records = reader.records();
+// TODO: decouple this
+pub fn bulk_set(csv: &mut Reader<File>, key: &str) -> Option<()> {
+    let records = csv.records();
     let client: Client = get_redis_client().unwrap();
     let mut con = client.get_connection().unwrap();
 
@@ -107,16 +108,9 @@ pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
         count += 1;
         pipeline
             .hset(
-                POSTCODE_TABLE_NAME,
-                row.get(postcode_index)
-                    .unwrap()
-                    .to_string()
-                    .replace(" ", ""),
-                format!(
-                    "{};{}",
-                    row.get(lat_index).unwrap(),
-                    row.get(lon_index).unwrap()
-                ),
+                key,
+                build_row_field(postcode_index, row),
+                build_row_value(lat_index, lon_index, row),
             )
             .ignore();
     });
@@ -125,17 +119,34 @@ pub fn bulk_set(reader: &mut Reader<File>) -> Option<()> {
 
     match result {
         Ok(res) => {
-            println!(
+            log::info!(
                 "Finished bootstrapping {} postcodes, result: {:?}",
-                count, res
+                count,
+                res
             );
             Some(())
         }
         Err(err) => {
-            println!("Failed to write to postcodes, error: {}", err);
+            log::error!("Failed to write to postcodes, error: {}", err);
             None
         }
     }
+}
+
+// TODO: move these away
+fn build_row_value(lat_index: usize, lon_index: usize, row: &StringRecord) -> String {
+    format!(
+        "{};{}",
+        row.get(lat_index).unwrap(),
+        row.get(lon_index).unwrap()
+    )
+}
+
+fn build_row_field(postcode_index: usize, row: &StringRecord) -> String {
+    row.get(postcode_index)
+        .unwrap()
+        .to_string()
+        .replace(" ", "")
 }
 
 #[cfg(test)]
@@ -154,7 +165,7 @@ mod tests {
             .write_record(&["TEST1", "0.0", "0.0"])
             .expect("Unable to write test record");
         let mut reader = csv::Reader::from_path(&file_name).expect("Issue reading test.csv");
-        let set_count = bulk_set(&mut reader);
+        let set_count = bulk_set(&mut reader, POSTCODE_TABLE_NAME);
         fs::remove_file(&file_name).unwrap();
         assert_eq!(set_count, Some(()));
     }
@@ -190,7 +201,7 @@ mod tests {
             del("TEST_DEL_TABLE", "TEST");
         }
         set("TEST_DEL_TABLE", "TEST", "TEST").unwrap();
-        let del_result = del("TEST_DEL_TABLE", "TEST");
+        del("TEST_DEL_TABLE", "TEST");
         let table_count = count("TEST_DEL_TABLE");
         assert_eq!(table_count, 0);
     }

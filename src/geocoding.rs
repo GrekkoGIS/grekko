@@ -5,6 +5,8 @@ use serde::Deserialize;
 use vrp_pragmatic::format::Location;
 
 use crate::redis_manager;
+use crate::user::get_user_from_token;
+use failure::_core::convert::Infallible;
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -27,17 +29,17 @@ cached! {
                 let mut reader = crate::geocoding::read_geocoding_csv();
                 let count = redis_manager::count(POSTCODE_TABLE_NAME);
 
-                if count != postcode_csv_size {
-                    println!("Bootstrapping postcode cache");
-                    redis_manager::bulk_set(&mut reader);
+                if count < postcode_csv_size {
+                    log::info!("Bootstrapping postcode cache");
+                    redis_manager::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
                     Some(())
                 } else {
-                    println!("Postcode cache was already bootstrapped");
+                    log::info!("Postcode cache was already bootstrapped");
                     Some(())
                 }
             }
             _ => {
-                println!("No available table named {}", table);
+                log::error!("No available table named {}", table);
                 None
             }
         }
@@ -70,7 +72,6 @@ pub fn lookup_coordinates(query: String) -> Location {
 
 pub fn get_postcodes() -> bool {
     let bootstrapped = bootstrap_cache(POSTCODE_TABLE_NAME.to_string());
-    println!("{:?}", bootstrapped);
     bootstrapped == Some(())
 }
 
@@ -98,8 +99,7 @@ fn build_cache_key(query: String) -> String {
     let postcode = postcode.replace(" ", "");
     let postcode = postcode.replace("-", "");
     let postcode = postcode.replace(",", "");
-    let postcode = postcode.replace(COORDINATES_SEPARATOR, "");
-    postcode
+    postcode.replace(COORDINATES_SEPARATOR, "")
 }
 
 pub fn reverse_search_file(query: String) -> String {
@@ -162,13 +162,31 @@ pub fn read_geocoding_csv() -> Reader<File> {
     csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv")
 }
 
+pub async fn receive_and_search_coordinates(
+    token: String,
+    postcode: String,
+) -> Result<impl warp::Reply, Infallible> {
+    // get_user_from_token(token).await.unwrap();
+    let result = reverse_search(postcode);
+    Ok(result)
+}
+
+pub async fn receive_and_search_postcode(
+    lat: f64,
+    lon: f64,
+    token: String,
+) -> Result<impl warp::Reply, Infallible> {
+    // get_user_from_token(token).await.unwrap();
+    let result = forward_search(vec![lat, lon]);
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::geocoding::{
-        bootstrap_cache, build_cache_key, forward_search_file, get_postcodes, reverse_search_file,
-        COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME,
+        build_cache_key, forward_search_file, get_postcodes, reverse_search_file,
+        COORDINATES_SEPARATOR,
     };
-    use crate::redis_manager::{del, get_coordinates, set};
 
     #[test]
     fn test_search_postcode() {
@@ -192,9 +210,9 @@ mod tests {
     fn test_build_cache_key() {
         let key = "IMAGINARY; -,POSTCODE";
         let key = build_cache_key(String::from(key));
-        assert!(!key.contains(" "));
-        assert!(!key.contains("-"));
-        assert!(!key.contains(","));
+        assert!(!key.contains(' '));
+        assert!(!key.contains('-'));
+        assert!(!key.contains(','));
         assert!(!key.contains(COORDINATES_SEPARATOR));
         assert_eq!(key, "IMAGINARYPOSTCODE")
     }

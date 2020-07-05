@@ -1,7 +1,9 @@
+use crate::auth;
+use crate::redis_manager;
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
-use warp::reject;
 use warp::reply::Response;
+use warp::{reject, Rejection, Reply};
 
 #[derive(Serialize, Deserialize)]
 pub struct User {
@@ -39,9 +41,56 @@ pub struct UserFail {
 impl reject::Reject for UserFail {}
 
 impl UserFail {
-    pub fn new() -> UserFail {
+    pub fn new(id: String) -> UserFail {
         UserFail {
-            message: String::from("Unable to find a user with that id"),
+            message: format!("Unable to find a user with id `{}`", id),
         }
     }
+}
+
+pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejection> {
+    let result = redis_manager::get::<User>("USERS", user.as_str());
+    match result {
+        None => Err(reject::custom(UserFail::new(user))),
+        Some(res) => Ok(warp::reply::json(&res)),
+    }
+}
+
+pub async fn set_user_details(token: String, user: User) -> Result<impl Reply, Rejection> {
+    let valid_jwt = auth::decode_token(token).await.or_else(|err| {
+        log::error!("{:?}", err);
+        Err(warp::reject())
+    })?;
+
+    let uid = auth::get_uid(valid_jwt).await.or_else(|err| {
+        log::error!("{:?}", err);
+        Err(warp::reject())
+    })?;
+
+    let result = redis_manager::set::<User>("USERS", &uid, user);
+    match result {
+        Some(value) => Ok(warp::reply::json(&value)),
+        None => Err(reject::reject()),
+    }
+}
+
+pub async fn get_user_from_token(token: String) -> Result<impl Reply, Rejection> {
+    let valid_jwt = auth::decode_token(token).await.or_else(|err| {
+        log::error!("{:?}", err);
+        Err(warp::reject())
+    })?;
+
+    let uid = auth::get_uid(valid_jwt).await.or_else(|err| {
+        log::error!("{:?}", err);
+        Err(warp::reject())
+    })?;
+
+    get_user_details(uid).await
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[tokio::test]
+    async fn test_get_user_claims() {}
 }

@@ -21,16 +21,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - name: Cache cargo bin
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-deps
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           override: true
+        env:
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}
+      - name: Cache cargo bin
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+             ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Run cargo bloat
         uses: orf/cargo-bloat-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}
+      - name: Install udeps
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-udeps --locked
+        env:
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}
+      - name: Run udeps
+        uses: actions-rs/cargo@v1
+        with:
+          command: udeps
+          args: --all-targets
+        env:
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}

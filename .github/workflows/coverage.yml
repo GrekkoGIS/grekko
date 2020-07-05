@@ -29,10 +29,13 @@ jobs:
           redis-version: ${{ matrix.redis-version }}
       - uses: actions/checkout@v2
       - name: Cache cargo bin
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
-          path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-deps
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -41,6 +44,9 @@ jobs:
         uses: actions-rs/tarpaulin@v0.1
         with:
           args: '-t 640'
+        env:
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
