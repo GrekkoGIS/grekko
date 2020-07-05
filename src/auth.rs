@@ -26,7 +26,7 @@ async fn validate_token(token: String) -> Result<ValidJWT, failure::Error> {
     }
 }
 
-// TODO [$5f023c6105542e00073c2a46]: don't do this alot, needs memoizing
+// TODO [#42]: don't do this alot, needs memoizing
 async fn get_jwks() -> Result<JWKS, failure::Error> {
     let api_key = env!("OKTA_API_KEY").to_string();
     let api_key = String::from("SSWS ") + &api_key;
@@ -85,10 +85,10 @@ pub(crate) async fn get_uid(token_data: ValidJWT) -> Result<String, failure::Err
 mod tests {
 
     #[tokio::test]
-    // TODO [$5f023c6105542e00073c2a47]: test this
+    // TODO [#43]: test this
     async fn test_decode_token() {}
-    // TODO [$5f023c6105542e00073c2a48]: test this
+    // TODO [#44]: test this
     async fn test_get_jwks() {}
-    // TODO [$5f023c6105542e00073c2a49]: test this
+    // TODO [#45]: test this
     async fn test_validate_token() {}
 }

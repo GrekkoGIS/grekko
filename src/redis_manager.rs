@@ -89,7 +89,7 @@ pub fn count(table: &str) -> i32 {
     con.hlen(table).unwrap()
 }
 
-// TODO [$5f023c6105542e00073c2a4a]: decouple this
+// TODO [#46]: decouple this
 pub fn bulk_set(csv: &mut Reader<File>, key: &str) -> Option<()> {
     let records = csv.records();
     let client: Client = get_redis_client().unwrap();
@@ -133,7 +133,7 @@ pub fn bulk_set(csv: &mut Reader<File>, key: &str) -> Option<()> {
     }
 }
 
-// TODO [$5f023c6105542e00073c2a4b]: move these away
+// TODO [#47]: move these away
 fn build_row_value(lat_index: usize, lon_index: usize, row: &StringRecord) -> String {
     format!(
         "{};{}",
