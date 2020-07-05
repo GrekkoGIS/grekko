@@ -1,8 +1,6 @@
 name: Test-and-upload-coverage
 
 on:
-  push:
-    branches: [ master, task/remove-codecov-publisher ]
   pull_request:
     branches: [ master ]
 
@@ -51,7 +49,7 @@ jobs:
       - uses: romeovs/lcov-reporter-action@v0.2.16
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          lcov-file: lcov.info
+          lcov-file: ./lcov.info
       - name: Archive code coverage results
         uses: actions/upload-artifact@v1
         with:
