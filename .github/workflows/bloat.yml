@@ -34,6 +34,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
           OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          MAPBOX_ACCESS_KEY: ${{ secrets.MAPBOX_ACCESS_KEY }}
       - name: Install udeps
         uses: actions-rs/cargo@v1
         with:
