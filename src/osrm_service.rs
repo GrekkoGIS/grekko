@@ -63,8 +63,8 @@ pub fn table(list: Vec<String>) -> Result<String, Error> {
     }
     let response = format!(
         "OSRM Table response: duration: {:?}, distance: {:?}, {:?}",
-        table.get_duration(0, 3)?,
-        table.get_distance(0, 3)?,
+        table.get_duration(0, 1)?,
+        table.get_distance(0, 1)?,
         durations,
     );
     log::debug!("{}", response);
