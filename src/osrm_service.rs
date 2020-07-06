@@ -39,6 +39,10 @@ pub fn table(list: Vec<String>) -> Result<String, Error> {
             longitude: -2.252854,
             latitude: 57.099011,
         },
+        Coordinate {
+            longitude: -2.252854,
+            latitude: 57.099011,
+        },
     ];
     let table = osrm.table(&*sources, &*destinations)?;
     let mut count = 1;
@@ -47,20 +51,20 @@ pub fn table(list: Vec<String>) -> Result<String, Error> {
     loop {
         let distance = table.get_distance(prior_count, count);
         if distance.is_ok() && count > 0 {
-            count += 1;
-            prior_count = count;
             durations.push(distance.unwrap());
-            println!("ok");
+            println!("Got distance for {}, {}", prior_count, count);
+            prior_count = count;
+            count += 1;
             continue;
         } else {
-            println!("wat");
+            println!("Failed distance for {}, {}", prior_count, count);
             break;
         }
     }
     let response = format!(
         "OSRM Table response: duration: {:?}, distance: {:?}, {:?}",
-        table.get_duration(0, 0)?,
-        table.get_distance(0, 0)?,
+        table.get_duration(0, 3)?,
+        table.get_distance(0, 3)?,
         durations,
     );
     log::debug!("{}", response);
