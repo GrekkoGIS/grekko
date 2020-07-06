@@ -57,7 +57,10 @@ pub fn table(list: Vec<String>) -> Result<String, Error> {
             count += 1;
             continue;
         } else {
-            println!("Failed distance for {}, {}, ", prior_count, count);
+            println!(
+                "Failed distance for {}, {}, ERROR: {:?}",
+                prior_count, count, result
+            );
             break;
         }
     }
