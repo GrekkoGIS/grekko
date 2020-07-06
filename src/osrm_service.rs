@@ -41,10 +41,27 @@ pub fn table(list: Vec<String>) -> Result<String, Error> {
         },
     ];
     let table = osrm.table(&*sources, &*destinations)?;
+    let mut count = 1;
+    let mut prior_count = 0;
+    let mut durations = vec![];
+    loop {
+        let distance = table.get_distance(prior_count, count);
+        if distance.is_ok() && count > 0 {
+            count += 1;
+            prior_count = count;
+            durations.push(distance.unwrap());
+            println!("ok");
+            continue;
+        } else {
+            println!("wat");
+            break;
+        }
+    }
     let response = format!(
-        "OSRM Table response: duration: {:?}, distance: {:?}",
-        table.get_duration(0, 5)?,
-        table.get_distance(0, 5)?,
+        "OSRM Table response: duration: {:?}, distance: {:?}, {:?}",
+        table.get_duration(0, 0)?,
+        table.get_distance(0, 0)?,
+        durations,
     );
     log::debug!("{}", response);
     Ok(response)
