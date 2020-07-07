@@ -1,6 +1,5 @@
 use failure::Error;
 use osrm::{Coordinate, Osrm, TableResponse};
-use std::sync::Arc;
 use vrp_pragmatic::format::problem::Matrix;
 
 pub fn get_matrix(coords: Vec<Vec<f32>>) -> Result<Matrix, Error> {
@@ -103,60 +102,6 @@ fn build_source_duration(
 
     log::debug!("Durations for index `{}` is {:?}", source_index, durations);
     Ok(durations)
-}
-
-fn build_source_generic<F>(
-    osrm: &Osrm,
-    source_index: usize,
-    destinations: &Vec<Coordinate>,
-    action: F,
-) -> Result<Vec<f32>, failure::Error>
-where
-    F: Fn(&TableResponse, usize, usize) -> Result<f32, failure::Error>,
-{
-    let table = osrm.table(&*vec![destinations[source_index].clone()], &*destinations)?;
-    let mut count = 0;
-    let mut prior_count = 0;
-    let mut array = vec![];
-    loop {
-        let result = action(&table, 0, count);
-        if result.is_ok() && count > 0 {
-            let value = result?;
-            array.push(value);
-            log::trace!(
-                "Got value for start `{}` and end `{}`, value `{}` ",
-                prior_count,
-                count,
-                value
-            );
-            prior_count = count;
-            count += 1;
-            continue;
-        } else if result.is_ok() && count == 0 {
-            let value = action(&table, 0, 0)?;
-            array.push(value);
-            log::trace!(
-                "Got value for start `{}` and end `{}`, value `{}` ",
-                prior_count,
-                count,
-                value
-            );
-            prior_count = count;
-            count += 1;
-            continue;
-        } else {
-            log::trace!(
-                "Failed value for {}, {}, value: {:?}",
-                prior_count,
-                count,
-                result
-            );
-            break;
-        }
-    }
-
-    log::debug!("Value for index `{}` is {:?}", source_index, array);
-    Ok(array)
 }
 
 fn build_source_distance(

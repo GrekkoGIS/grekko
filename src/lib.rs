@@ -188,26 +188,23 @@ fn apply_mapbox_max_jobs(trip: &request::SimpleTrip) -> std::result::Result<(), 
 }
 
 async fn build_matrix(trip: &request::SimpleTrip) -> Matrix {
-    let matrix_vehicles: Vec<Vec<f64>> = trip
+    let matrix_vehicles: Vec<Vec<f32>> = trip
         .clone()
         .coordinate_vehicles
         .iter()
         .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
-        .map(|location| vec![location.lng, location.lat])
+        .map(|location| vec![location.lng as f32, location.lat as f32])
         .collect();
-    let matrix_jobs: Vec<Vec<f64>> = trip
+    let matrix_jobs: Vec<Vec<f32>> = trip
         .clone()
         .coordinate_jobs
         .iter()
         .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
-        .map(|location| vec![location.lng, location.lat])
+        .map(|location| vec![location.lng as f32, location.lat as f32])
         .collect();
     let concat = [&matrix_jobs[..], &matrix_vehicles[..]].concat();
 
-    let internal_matrix = mapbox::get_matrix(concat).await.unwrap_or_default();
-    // let internal_matrix = osrm_service::get_matrix(concat).unwrap();
-
-    mapbox::convert_to_vrp_matrix(internal_matrix).await
+    osrm_service::get_matrix(concat).unwrap()
 }
 
 pub async fn simple_trip_async(
