@@ -11,7 +11,6 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 pub mod auth;
 pub mod geocoding;
-pub mod mapbox;
 pub mod osrm_service;
 pub mod redis_manager;
 pub mod request;

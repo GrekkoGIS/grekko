@@ -16,7 +16,6 @@ use crate::user::get_user_from_token;
 
 pub mod auth;
 pub mod geocoding;
-mod mapbox;
 mod osrm_service;
 mod redis_manager;
 mod request;
