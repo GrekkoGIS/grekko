@@ -17,6 +17,7 @@ use crate::user::get_user_from_token;
 pub mod auth;
 pub mod geocoding;
 mod mapbox;
+mod osrm_service;
 mod redis_manager;
 mod request;
 mod solver;
@@ -204,6 +205,7 @@ async fn build_matrix(trip: &request::SimpleTrip) -> Matrix {
     let concat = [&matrix_jobs[..], &matrix_vehicles[..]].concat();
 
     let internal_matrix = mapbox::get_matrix(concat).await.unwrap_or_default();
+    // let internal_matrix = osrm_service::get_matrix(concat).unwrap();
 
     mapbox::convert_to_vrp_matrix(internal_matrix).await
 }
