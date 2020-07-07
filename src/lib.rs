@@ -153,13 +153,11 @@ pub async fn simple_trip_matrix(
     trip: request::SimpleTrip,
 ) -> Result<impl warp::Reply, Rejection> {
     get_user_from_token(token).await.unwrap();
-    if let Err(err) = apply_mapbox_max_jobs(&trip) {
-        return Err(err);
-    }
 
     let problem = trip.clone().convert_to_internal_problem().await;
 
     let matrix = build_matrix(&trip).await;
+
     let matrix_copy = matrix.clone();
 
     let problem = get_core_problem(problem, Some(vec![matrix]));
