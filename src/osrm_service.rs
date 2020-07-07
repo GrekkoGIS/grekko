@@ -30,14 +30,20 @@ fn build_source_array(
     loop {
         let result = table.get_duration(0, count);
         if result.is_ok() && count > 0 {
-            durations.push(result?);
-            println!("Got distance for {}, {}", prior_count, count);
+            let duration = result?;
+            durations.push(duration);
+            log::trace!(
+                "Got distance for start `{}` and end `{}`, distance `{}` ",
+                prior_count,
+                count,
+                duration
+            );
             prior_count = count;
             count += 1;
             continue;
         } else {
             log::trace!(
-                "Failed distance for {}, {}, ERROR: {:?}",
+                "Failed distance for {}, {}, Result: {:?}",
                 prior_count,
                 count,
                 result
@@ -47,7 +53,6 @@ fn build_source_array(
     }
 
     log::debug!("Durations for index `{}` is {:?}", source_index, durations);
-    println!("Durations for index `{}` is {:?}", source_index, durations);
     Ok(durations)
 }
 
