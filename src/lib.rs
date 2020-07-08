@@ -151,7 +151,7 @@ pub async fn simple_trip_matrix(
     token: String,
     trip: request::SimpleTrip,
 ) -> Result<impl warp::Reply, Rejection> {
-    get_user_from_token(token).await.unwrap();
+    // get_user_from_token(token).await.unwrap();
 
     let problem = trip.clone().convert_to_internal_problem().await;
 
@@ -174,14 +174,6 @@ pub async fn simple_trip_matrix(
     }
 
     Ok(warp::reply::json(&context.solution))
-}
-
-fn apply_mapbox_max_jobs(trip: &request::SimpleTrip) -> std::result::Result<(), Rejection> {
-    if trip.coordinate_jobs.len() + trip.coordinate_vehicles.len() >= 25 {
-        Err(warp::reject::reject())
-    } else {
-        Ok(())
-    }
 }
 
 async fn build_matrix(trip: &request::SimpleTrip) -> Matrix {

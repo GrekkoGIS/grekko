@@ -7,19 +7,19 @@ pub fn get_matrix(coords: Vec<Vec<f32>>) -> Result<Matrix, Error> {
     let matrix = Matrix {
         profile: Some("car".to_string()),
         timestamp: None,
-        travel_times: trip_durations[0]
-            .clone()
-            .iter()
-            .map(|val| *val as i64)
-            .collect(),
-        distances: trip_distances[0]
-            .clone()
-            .iter()
-            .map(|val| *val as i64)
-            .collect(),
+        travel_times: map_to_single_dimensional_array(trip_durations),
+        distances: map_to_single_dimensional_array(trip_distances),
         error_codes: None,
     };
     Ok(matrix)
+}
+
+pub fn map_to_single_dimensional_array(matrix: Vec<Vec<f32>>) -> Vec<i64> {
+    let mut array = vec![];
+    matrix
+        .iter()
+        .for_each(|row| row.iter().for_each(|val| array.push(*val as i64)));
+    array
 }
 
 pub fn trip(coords: Vec<Vec<f32>>) -> Result<(Vec<Vec<f32>>, Vec<Vec<f32>>), Error> {
@@ -51,6 +51,8 @@ where
     for (index, _) in destinations.clone().iter().enumerate() {
         matrix.push(action(&osrm, index, &destinations)?);
     }
+
+    log::debug!("Built matrix: `{:?}`", matrix);
     Ok(matrix)
 }
 
@@ -100,7 +102,7 @@ fn build_source_duration(
         }
     }
 
-    log::debug!("Durations for index `{}` is {:?}", source_index, durations);
+    log::trace!("Durations for index `{}` is {:?}", source_index, durations);
     Ok(durations)
 }
 
@@ -150,7 +152,7 @@ fn build_source_distance(
         }
     }
 
-    log::debug!("Durations for index `{}` is {:?}", source_index, durations);
+    log::trace!("Durations for index `{}` is {:?}", source_index, durations);
     Ok(durations)
 }
 
