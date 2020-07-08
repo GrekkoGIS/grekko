@@ -53,14 +53,15 @@ pub fn lookup_coordinates(query: String) -> Location {
     let coordinates: Vec<&str> = coordinates.split(';').collect();
     Location {
         lat: coordinates[0].parse().unwrap_or_else(|_| {
-            println!(
+            //TODO remove these panic and add to an inassigned list
+            log::error!(
                 "There weren't enough coordinates to extract latitude for postcode {}",
                 query
             );
             0.0
         }),
         lng: coordinates[1].parse().unwrap_or_else(|_| {
-            println!(
+            log::error!(
                 "There weren't enough coordinates to extract longitude for postcode {}",
                 query
             );

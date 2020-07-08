@@ -106,7 +106,7 @@ pub async fn simple_trip(
     token: String,
     trip: request::SimpleTrip,
 ) -> Result<impl warp::Reply, Infallible> {
-    get_user_from_token(token).await.unwrap();
+    // get_user_from_token(token).await.unwrap();
     // TODO [#29]: add some concurrency here
     // Convert simple trip to internal problem
     let problem = trip.clone().convert_to_internal_problem().await;
