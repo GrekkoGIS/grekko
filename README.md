@@ -33,7 +33,7 @@ Brain dump of otherwise stuff to add:
 - various methods of execution
 - gitops & firecracker
 - space datasets
-- 3d navigation (like googl earth, but using foss datasets)
+- 3d navigation (like google earth, but using foss datasets)
 - routing(real routing)
 - using distance matricess
 - using osm for geocoding 
