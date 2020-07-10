@@ -1,13 +1,13 @@
 use std::fs::File;
 
 use csv::{Reader, StringRecord};
+use failure::ResultExt;
 use redis::{Client, Commands, Connection, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
 
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
-use failure::ResultExt;
 
 fn connect_and_query<F, T>(mut action: F) -> Option<T>
 where
@@ -89,9 +89,23 @@ pub fn count(table: &str) -> i32 {
         .get_connection()
         .with_context(|e| {
             format!(
-                "Failed to reach a redis connection: `{:?}, {:?}`",
+                "Failed to reach a redis connection. \
+                Code: `{:?}`, \
+                Detail: `{:?}`, \
+                Category: `{:?}`, \
+                ClusterError: `{:?}`, \
+                ConnectionDropped: `{:?}`, \
+                ConnectionRefused: `{:?}`, \
+                IOError: `{:?}`, \
+                Timeout: `{:?}`",
                 e.code(),
-                e.detail()
+                e.detail(),
+                e.category(),
+                e.is_cluster_error(),
+                e.is_connection_dropped(),
+                e.is_connection_refusal(),
+                e.is_io_error(),
+                e.is_timeout(),
             )
         })
         .unwrap();
@@ -161,8 +175,9 @@ fn build_row_field(postcode_index: usize, row: &StringRecord) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::fs;
+
+    use super::*;
 
     #[test]
     fn test_bulk_set() {
