@@ -76,7 +76,7 @@ pub(crate) async fn get_uid(token_data: ValidJWT) -> Result<String, failure::Err
     let uid = token_data
         .claims
         .get("uid")
-        .ok_or_else(|| failure::err_msg("uid could not be found in jwk"))?
+        .ok_or_else(|| failure::err_msg("UID could not be found in JWT"))?
         .to_string();
     Ok(uid)
 }

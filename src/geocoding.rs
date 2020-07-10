@@ -5,6 +5,7 @@ use serde::Deserialize;
 use vrp_pragmatic::format::Location;
 
 use crate::redis_manager;
+use failure::Error;
 use failure::_core::convert::Infallible;
 
 #[derive(Deserialize)]
@@ -77,15 +78,15 @@ pub fn get_postcodes() -> bool {
 pub fn reverse_search(query: String) -> String {
     if get_postcodes() {
         match reverse_search_cache(query) {
-            Some(value) => value,
-            None => String::from("EMPTY"), //TODO this is a poop error message
+            Ok(value) => value,
+            Err(_) => String::from("EMPTY"), //TODO this is a poop error message
         }
     } else {
         reverse_search_file(query)
     }
 }
 
-pub fn reverse_search_cache(query: String) -> Option<String> {
+pub fn reverse_search_cache(query: String) -> Result<String, Error> {
     let postcode = build_cache_key(query);
     let postcode = postcode.as_str();
     redis_manager::get_coordinates(postcode)
@@ -134,8 +135,8 @@ pub fn forward_search(lat_long: Vec<f64>) -> String {
 
 pub fn forward_search_cache(lat_long: Vec<f64>) -> String {
     match redis_manager::get_postcode(lat_long) {
-        None => String::from("Postcode couldn't be found"),
-        Some(value) => value,
+        Err(err) => String::from("Postcode couldn't be found"),
+        Ok(value) => value,
     }
 }
 

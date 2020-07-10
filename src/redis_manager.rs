@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use csv::{Reader, StringRecord};
-use failure::ResultExt;
+use failure::{Error, ResultExt};
 use redis::{Client, Commands, Connection, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
@@ -9,12 +9,19 @@ use serde::Serialize;
 
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 
-fn connect_and_query<F, T>(mut action: F) -> Option<T>
+fn connect_and_query<F, T>(mut action: F) -> Result<T, Error>
 where
-    F: FnMut(Connection) -> Option<T>,
+    F: FnMut(Connection) -> Result<T, Error>,
 {
-    let client: Client = get_redis_client().ok()?;
-    let con = client.get_connection().ok()?;
+    let client: Client = get_redis_client().with_context(|err| {
+        format!(
+            "Failed to  get a redis client, category `{}`",
+            err.category()
+        )
+    })?;
+    let con = client
+        .get_connection()
+        .with_context(|err| format!("Failed to get a connection, category `{}`", err.category()))?;
     action(con)
 }
 
@@ -23,11 +30,20 @@ fn get_redis_client() -> RedisResult<Client> {
     redis::Client::open("redis://127.0.0.1/")
 }
 
-pub fn get_coordinates(postcode: &str) -> Option<String> {
-    connect_and_query(|mut connection| connection.hget(POSTCODE_TABLE_NAME, postcode).ok()?)
+pub fn get_coordinates(postcode: &str) -> Result<String, Error> {
+    connect_and_query(|mut connection| {
+        Ok(connection
+            .hget(POSTCODE_TABLE_NAME, postcode)
+            .with_context(|err| {
+                format!(
+                    "Failed to get `{}` from `{}`",
+                    postcode, POSTCODE_TABLE_NAME
+                )
+            })?)
+    })
 }
 
-pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
+pub fn get_postcode(coordinates: Vec<f64>) -> Result<String, Error> {
     let coord_string = coordinates
         .iter()
         .map(|coord| coord.to_string())
@@ -36,25 +52,39 @@ pub fn get_postcode(coordinates: Vec<f64>) -> Option<String> {
 
     // TODO [#31]: fix this
     connect_and_query(|mut connection| {
-        redis::cmd("HSCAN")
+        Ok(redis::cmd("HSCAN")
             .arg(&["0", "MATCH", &coord_string])
             .query(&mut connection)
-            .ok()?
+            .with_context(|err| {
+                format!(
+                    "Failed to scan for `{:?}` err `{}`",
+                    coordinates,
+                    err.category()
+                )
+            })?)
     })
 }
 
-pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Option<T> {
-    let result: Option<String> =
-        connect_and_query(|mut connection| connection.hget(table, key).ok()?);
+pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Result<T, Error> {
+    let result: Result<String, Error> = connect_and_query(|mut connection| {
+        Ok(connection.hget(table, key).with_context(|err| {
+            format!(
+                "Failed to get `{}` from `{}` err `{}`",
+                key,
+                table,
+                err.category()
+            )
+        })?)
+    });
 
     match result {
-        None => None,
-        Some(res) => serde_json::from_str(res.as_str()).ok()?,
+        Err(err) => Err(err),
+        Ok(res) => Ok(serde_json::from_str(res.as_str())?),
     }
 }
 
-pub fn del(table: &str, key: &str) -> Option<String> {
-    connect_and_query(|mut connection| connection.hdel(table, key).ok()?)
+pub fn del(table: &str, key: &str) -> Result<String, Error> {
+    connect_and_query(|mut connection| Ok(connection.hdel(table, key)?))
 }
 
 pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<String> {
@@ -257,8 +287,8 @@ mod tests {
 
     #[test]
     fn test_connect_and_query() {
-        let result: Option<String> =
-            connect_and_query(|mut connection| connection.set("TEST_HOF", "TEST_HOF").ok()?);
-        assert!(result.is_some());
+        let result: Result<String, Error> =
+            connect_and_query(|mut connection| connection.set("TEST_HOF", "TEST_HOF")?);
+        assert!(result.is_ok());
     }
 }

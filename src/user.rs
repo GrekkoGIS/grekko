@@ -1,6 +1,6 @@
 use crate::auth;
 use crate::redis_manager;
-use failure::Error;
+use failure::{Error, ResultExt};
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
 use vrp_pragmatic::format::solution::Solution;
@@ -69,19 +69,26 @@ impl UserFail {
 pub async fn get_user_filter(token: String) -> Result<impl warp::Reply, Rejection> {
     let user = get_user_from_token(token).await;
     match user {
-        Ok(user) => Ok(warp::reply::json(&user)),
-        Err(_) => Err(warp::reject()),
+        Ok(user) => {
+            log::debug!("User: `{}`", user);
+            Ok(warp::reply::json(&user))
+        }
+        Err(err) => {
+            log::error!("Error getting user: `{}`", err);
+            Err(warp::reject())
+        }
     }
 }
 
 pub async fn get_user_from_token(token: String) -> Result<User, Error> {
     let uid = get_id_from_token(token).await?;
+    log::debug!("User id decoded from token: `{}`", uid);
 
     get_user_details(uid).await
 }
 
 pub async fn get_user_details(uid: String) -> Result<User, Error> {
-    redis_manager::get::<User>("USERS", uid.as_str()).ok_or(failure::err_msg("Failed to get user"))
+    redis_manager::get::<User>("USERS", uid.as_str())
 }
 
 pub async fn set_user(user: User) -> Option<String> {
