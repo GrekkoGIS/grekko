@@ -10,9 +10,12 @@ use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
 
 use warp::http::Method;
 
-use warp::{Filter, Rejection};
+use warp::{reject, Filter, Rejection};
 
 use crate::user::get_user_from_token;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use warp::reply::Json;
 
 pub mod auth;
 pub mod geocoding;
@@ -36,7 +39,7 @@ pub async fn start_server(addr: SocketAddr) {
     let user_extractor = warp::path("user")
         .and(warp::get())
         .and(warp::header::<String>(AUTH_HEADER))
-        .and_then(user::get_user_from_token);
+        .and_then(user::get_user_filter);
 
     let create_user = warp::path!("user" / "create")
         .and(warp::header::<String>(AUTH_HEADER))
@@ -105,8 +108,9 @@ pub async fn trip(token: String, _request: Problem) -> Result<impl warp::Reply, 
 pub async fn simple_trip(
     token: String,
     trip: request::SimpleTrip,
-) -> Result<impl warp::Reply, Infallible> {
-    // get_user_from_token(token).await.unwrap();
+) -> Result<impl warp::Reply, Rejection> {
+    let user = get_user_from_token(token).await.unwrap();
+    let user_reply = user.clone().wrap_reply().await?;
     // TODO [#29]: add some concurrency here
     // Convert simple trip to internal problem
     let problem = trip.clone().convert_to_internal_problem().await;
@@ -129,7 +133,29 @@ pub async fn simple_trip(
         format!("unfeasible solution in '{}': '{}'", "name", err);
     }
 
-    Ok(warp::reply::json(&context.solution))
+    let solution = &context.solution;
+    let user = user.add_route(solution.clone());
+    let route_set_result = user::set_user(user).await;
+
+    match_option_to_warp(route_set_result, Some(&context.solution))
+}
+
+fn match_option_to_warp<T, R>(outer: Option<T>, real_value: Option<&R>) -> Result<Json, Rejection>
+where
+    T: Serialize,
+    R: Serialize,
+{
+    if let Some(value) = real_value {
+        match outer {
+            Some(value) => Ok(warp::reply::json(&real_value)),
+            None => Err(reject::reject()),
+        }
+    } else {
+        match outer {
+            Some(value) => Ok(warp::reply::json(&value)),
+            None => Err(reject::reject()),
+        }
+    }
 }
 
 fn get_core_problem(

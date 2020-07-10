@@ -6,6 +6,8 @@ use vrp_core::solver::{Builder, Metrics, Solver};
 use vrp_pragmatic::format::problem::{deserialize_problem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 
+pub const ROUTE_TABLE: &str = "ROUTE";
+
 pub fn get_pragmatic_problem(problem_text: &str) -> Problem {
     deserialize_problem(BufReader::new(problem_text.as_bytes())).unwrap()
 }

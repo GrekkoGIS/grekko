@@ -20,7 +20,7 @@ pub enum GeocodingKind {
 
 cached! {
     POSTCODES;
-    fn bootstrap_cache(table: String) -> Option<()> = {
+    fn bootstrap_cache(table: String) -> bool = {
         match table.as_str() {
             POSTCODE_TABLE_NAME => {
                 // I don't want to read these again to UTF so using a known const
@@ -31,15 +31,15 @@ cached! {
                 if count < postcode_csv_size {
                     log::info!("Bootstrapping postcode cache");
                     redis_manager::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
-                    Some(())
+                    true
                 } else {
                     log::info!("Postcode cache was already bootstrapped");
-                    Some(())
+                    true
                 }
             }
             _ => {
                 log::error!("No available table named {}", table);
-                None
+                false
             }
         }
     }
@@ -53,7 +53,7 @@ pub fn lookup_coordinates(query: String) -> Location {
     let coordinates: Vec<&str> = coordinates.split(';').collect();
     Location {
         lat: coordinates[0].parse().unwrap_or_else(|_| {
-            //TODO remove these panic and add to an inassigned list
+            //TODO remove these panic and add to an unassigned list
             log::error!(
                 "There weren't enough coordinates to extract latitude for postcode {}",
                 query
@@ -71,8 +71,7 @@ pub fn lookup_coordinates(query: String) -> Location {
 }
 
 pub fn get_postcodes() -> bool {
-    let bootstrapped = bootstrap_cache(POSTCODE_TABLE_NAME.to_string());
-    bootstrapped == Some(())
+    bootstrap_cache(POSTCODE_TABLE_NAME.to_string())
 }
 
 pub fn reverse_search(query: String) -> String {
@@ -89,7 +88,6 @@ pub fn reverse_search(query: String) -> String {
 pub fn reverse_search_cache(query: String) -> Option<String> {
     let postcode = build_cache_key(query);
     let postcode = postcode.as_str();
-
     redis_manager::get_coordinates(postcode)
 }
 

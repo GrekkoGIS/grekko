@@ -1,16 +1,18 @@
 use crate::auth;
 use crate::redis_manager;
+use failure::Error;
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
-use warp::reply::Response;
+use vrp_pragmatic::format::solution::Solution;
+use warp::reply::{Json, Response};
 use warp::{reject, Rejection, Reply};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct User {
-    pub id: String,
+    uid: String,
     forward_geocoding: Vec<String>,
     reverse_geocoding: Vec<Vec<f64>>,
-    simple_routes: Vec<String>,
+    routes: Vec<Solution>,
 }
 
 impl warp::reply::Reply for User {
@@ -27,9 +29,25 @@ impl fmt::Display for User {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "ID: {} ForwardGeocoding: {:?}, ReverseGeocoding: {:?}, SimpleRoutes: {:?}",
-            self.id, self.forward_geocoding, self.reverse_geocoding, self.simple_routes
+            "ForwardGeocoding: {:?}, ReverseGeocoding: {:?}, Routes: {:?}",
+            self.forward_geocoding, self.reverse_geocoding, self.routes
         )
+    }
+}
+
+impl User {
+    pub async fn wrap_reply(self) -> Result<Json, Rejection> {
+        let user = get_user_details(self.uid).await;
+        match user {
+            Ok(user) => Ok(warp::reply::json(&user)),
+            Err(res) => Err(reject::custom(UserFail::new(String::new()))), //TODO
+        }
+    }
+
+    pub fn add_route(self, route: Solution) -> User {
+        let mut user = self.clone();
+        user.routes.push(route);
+        user
     }
 }
 
@@ -48,44 +66,44 @@ impl UserFail {
     }
 }
 
-pub async fn get_user_details(user: String) -> Result<impl warp::Reply, Rejection> {
-    let result = redis_manager::get::<User>("USERS", user.as_str());
-    match result {
-        None => Err(reject::custom(UserFail::new(user))),
-        Some(res) => Ok(warp::reply::json(&res)),
+pub async fn get_user_filter(token: String) -> Result<impl warp::Reply, Rejection> {
+    let user = get_user_from_token(token).await;
+    match user {
+        Ok(user) => Ok(warp::reply::json(&user)),
+        Err(_) => Err(warp::reject()),
     }
 }
 
-pub async fn set_user_details(token: String, user: User) -> Result<impl Reply, Rejection> {
-    let valid_jwt = auth::decode_token(token).await.or_else(|err| {
-        log::error!("{:?}", err);
-        Err(warp::reject())
-    })?;
+pub async fn get_user_from_token(token: String) -> Result<User, Error> {
+    let uid = get_id_from_token(token).await?;
 
-    let uid = auth::get_uid(valid_jwt).await.or_else(|err| {
-        log::error!("{:?}", err);
-        Err(warp::reject())
-    })?;
+    get_user_details(uid).await
+}
 
-    let result = redis_manager::set::<User>("USERS", &uid, user);
+pub async fn get_user_details(uid: String) -> Result<User, Error> {
+    redis_manager::get::<User>("USERS", uid.as_str()).ok_or(failure::err_msg("Failed to get user"))
+}
+
+pub async fn set_user(user: User) -> Option<String> {
+    redis_manager::set::<User>("USERS", &user.uid, user.clone())
+}
+
+pub async fn set_user_details(token: String, user: User) -> Result<Json, Rejection> {
+    let user_check = get_id_from_token(token).await;
+
+    let result = set_user(user).await;
     match result {
         Some(value) => Ok(warp::reply::json(&value)),
         None => Err(reject::reject()),
     }
 }
 
-pub async fn get_user_from_token(token: String) -> Result<impl Reply, Rejection> {
-    let valid_jwt = auth::decode_token(token).await.or_else(|err| {
-        log::error!("{:?}", err);
-        Err(warp::reject())
-    })?;
+pub async fn get_id_from_token(token: String) -> Result<String, Error> {
+    let valid_jwt = auth::decode_token(token).await?;
 
-    let uid = auth::get_uid(valid_jwt).await.or_else(|err| {
-        log::error!("{:?}", err);
-        Err(warp::reject())
-    })?;
+    let uid = auth::get_uid(valid_jwt).await?;
 
-    get_user_details(uid).await
+    Ok(uid)
 }
 
 #[cfg(test)]
