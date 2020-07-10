@@ -7,6 +7,7 @@ use serde::export::fmt::Display;
 use serde::Serialize;
 
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
+use failure::ResultExt;
 
 fn connect_and_query<F, T>(mut action: F) -> Option<T>
 where
@@ -84,7 +85,16 @@ pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<S
 
 pub fn count(table: &str) -> i32 {
     let client: Client = get_redis_client().unwrap();
-    let mut con = client.get_connection().unwrap();
+    let mut con = client
+        .get_connection()
+        .with_context(|e| {
+            format!(
+                "Failed to reach a redis connection: `{:?}, {:?}`",
+                e.code(),
+                e.detail()
+            )
+        })
+        .unwrap();
 
     con.hlen(table).unwrap()
 }
