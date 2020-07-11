@@ -76,7 +76,7 @@ pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Result<T, Error> {
             )
         })?)
     });
-    log::debug!(
+    log::trace!(
         "Result received from query: `{:?}` for table `{}` and key `{}`",
         result,
         table,

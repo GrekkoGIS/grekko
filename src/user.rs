@@ -71,7 +71,7 @@ pub async fn get_user(token: String) -> Result<User, Error> {
     let uid = get_id_from_token(token)
         .await
         .with_context(|err| format!("Failed to get uid from token err `{}`", err))?;
-    log::debug!("User `{}` decoded from token", uid);
+    log::trace!("User `{}` decoded from token", uid);
 
     get_user_details(uid).await
 }
@@ -94,7 +94,7 @@ pub async fn get_id_from_token(token: String) -> Result<String, Error> {
     let valid_jwt = auth::decode_token_unsafe(token.clone())
         .await
         .with_context(|err| format!("Failed to decode token err: `{}`", err))?;
-    log::debug!("TokenData `{:?}` decoded", valid_jwt);
+    log::trace!("TokenData `{:?}` decoded", valid_jwt);
     Ok(valid_jwt.claims.uid)
 }
 

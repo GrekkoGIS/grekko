@@ -127,6 +127,7 @@ pub async fn simple_trip_matrix(
     let problem = trip.clone().convert_to_internal_problem().await;
 
     let matrix = build_matrix(&trip).await;
+    let matrix = match_result_err(matrix)?;
 
     let matrix_copy = matrix.clone();
 
@@ -149,7 +150,7 @@ pub async fn simple_trip_matrix(
     Ok(warp::reply::json(&context.solution))
 }
 
-async fn build_matrix(trip: &request::SimpleTrip) -> Matrix {
+async fn build_matrix(trip: &request::SimpleTrip) -> Result<Matrix, Error> {
     let matrix_vehicles: Vec<Vec<f32>> = trip
         .clone()
         .coordinate_vehicles
@@ -166,7 +167,7 @@ async fn build_matrix(trip: &request::SimpleTrip) -> Matrix {
         .collect();
     let concat = [&matrix_jobs[..], &matrix_vehicles[..]].concat();
 
-    osrm_service::get_matrix(concat).unwrap()
+    osrm_service::get_matrix(concat)
 }
 
 fn get_core_problem(

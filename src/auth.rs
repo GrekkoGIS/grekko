@@ -20,7 +20,7 @@ pub(crate) async fn decode_token_unsafe(
         .get(token_index)
         .ok_or_else(|| failure::err_msg("Failed to get the token index"))?;
 
-    log::debug!("Decoding token `{}`", token);
+    log::trace!("Decoding token `{}`", token);
     Ok(jsonwebtoken::dangerous_insecure_decode(&token)?)
 }
 
