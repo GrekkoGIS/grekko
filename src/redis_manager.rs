@@ -76,6 +76,12 @@ pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Result<T, Error> {
             )
         })?)
     });
+    log::debug!(
+        "Result received from query: `{:?}` for table `{}` and key `{}`",
+        result,
+        table,
+        key
+    );
 
     match result {
         Err(err) => Err(err.into()),

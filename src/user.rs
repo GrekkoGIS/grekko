@@ -71,19 +71,19 @@ pub async fn get_user(token: String) -> Result<User, Error> {
     let uid = get_id_from_token(token)
         .await
         .with_context(|err| format!("Failed to get uid from token err `{}`", err))?;
-    log::debug!("User uid decoded from token: `{}`", uid);
+    log::debug!("User `{}` decoded from token", uid);
 
     get_user_details(uid).await
 }
 
 pub async fn get_user_details(uid: String) -> Result<User, Error> {
-    let user = redis_manager::get::<String>("USERS", uid.as_str()).with_context(|err| {
+    let user = redis_manager::get::<User>("USERS", uid.as_str()).with_context(|err| {
         format!(
             "Failed to get user `{}` from table USERS err `{}`",
             uid, err
         )
     })?;
-    Ok(serde_json::from_str(&user)?)
+    Ok(user)
 }
 
 pub async fn set_user(user: User) -> Option<String> {
@@ -94,7 +94,7 @@ pub async fn get_id_from_token(token: String) -> Result<String, Error> {
     let valid_jwt = auth::decode_token_unsafe(token.clone())
         .await
         .with_context(|err| format!("Failed to decode token err: `{}`", err))?;
-    log::debug!("token `{:?}` decoded from `{}`", valid_jwt, token);
+    log::debug!("TokenData `{:?}` decoded", valid_jwt);
     Ok(valid_jwt.claims.uid)
 }
 
