@@ -161,25 +161,6 @@ pub fn read_geocoding_csv() -> Reader<File> {
     csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv")
 }
 
-pub async fn receive_and_search_coordinates(
-    _token: String,
-    postcode: String,
-) -> Result<impl warp::Reply, Infallible> {
-    // get_user_from_token(token).await.unwrap();
-    let result = reverse_search(postcode);
-    Ok(result)
-}
-
-pub async fn receive_and_search_postcode(
-    lat: f64,
-    lon: f64,
-    _token: String,
-) -> Result<impl warp::Reply, Infallible> {
-    // get_user_from_token(token).await.unwrap();
-    let result = forward_search(vec![lat, lon]);
-    Ok(result)
-}
-
 #[cfg(test)]
 mod tests {
     use crate::geocoding::{

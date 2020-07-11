@@ -67,21 +67,7 @@ impl UserFail {
     }
 }
 
-pub async fn get_user_filter(token: String) -> Result<impl warp::Reply, Rejection> {
-    let user = get_user_from_token(token).await;
-    match user {
-        Ok(user) => {
-            log::debug!("User: `{}`", user);
-            Ok(warp::reply::json(&user))
-        }
-        Err(err) => {
-            log::error!("Error getting user: `{}`", err);
-            Err(warp::reject())
-        }
-    }
-}
-
-pub async fn get_user_from_token(token: String) -> Result<User, Error> {
+pub async fn get_user(token: String) -> Result<User, Error> {
     let uid = get_id_from_token(token).await?;
     log::debug!("User id decoded from token: `{}`", uid);
 
@@ -95,16 +81,6 @@ pub async fn get_user_details(uid: String) -> Result<User, Error> {
 
 pub async fn set_user(user: User) -> Option<String> {
     redis_manager::set::<User>("USERS", &user.uid, user.clone())
-}
-
-pub async fn set_user_details(token: String, user: User) -> Result<Json, Rejection> {
-    let user_check = get_id_from_token(token).await;
-
-    let result = set_user(user).await;
-    match result {
-        Some(value) => Ok(warp::reply::json(&value)),
-        None => Err(reject::reject()),
-    }
 }
 
 pub async fn get_id_from_token(token: String) -> Result<String, Error> {
