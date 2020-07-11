@@ -18,22 +18,18 @@ use vrp_pragmatic::format::Location;
 
 pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
-    match user {
-        Ok(user) => {
-            log::debug!("User: `{}`", user);
-            Ok(warp::reply::json(&user))
-        }
-        Err(err) => {
-            log::error!("Error getting user: `{}`", err);
-            Err(warp::reject())
-        }
-    }
+
+    match_result_err(user).map_err(|err| {
+        log::error!("Error getting user: `{:?}`", err);
+        err
+    })
 }
 
-pub async fn set_user_from_token(token: String, user: User) -> Result<Json, Rejection> {
-    let user_check = get_id_from_token(token).await;
+pub async fn set_user_from_token(token: String, user_request: User) -> Result<Json, Rejection> {
+    let user = get_user(token).await;
+    match_result_err(user)?;
 
-    let result = set_user(user).await;
+    let result = set_user(user_request).await;
     match result {
         Some(value) => Ok(warp::reply::json(&value)),
         None => Err(reject::reject()),
@@ -41,10 +37,12 @@ pub async fn set_user_from_token(token: String, user: User) -> Result<Json, Reje
 }
 
 pub async fn search_coordinates(
-    _token: String,
+    token: String,
     postcode: String,
-) -> Result<impl warp::Reply, Infallible> {
-    // get_user_from_token(token).await.unwrap();
+) -> Result<impl warp::Reply, Rejection> {
+    let user = get_user(token).await;
+    match_result_err(user)?;
+
     let result = reverse_search(postcode);
     Ok(result)
 }
@@ -52,9 +50,11 @@ pub async fn search_coordinates(
 pub async fn search_postcode(
     lat: f64,
     lon: f64,
-    _token: String,
-) -> Result<impl warp::Reply, Infallible> {
-    // get_user_from_token(token).await.unwrap();
+    token: String,
+) -> Result<impl warp::Reply, Rejection> {
+    let user = get_user(token).await;
+    match_result_err(user)?;
+
     let result = forward_search(vec![lat, lon]);
     Ok(result)
 }
@@ -63,8 +63,9 @@ pub async fn simple_trip(
     token: String,
     trip: request::SimpleTrip,
 ) -> Result<impl warp::Reply, Rejection> {
-    let user = get_user(token).await.unwrap();
-    let user_reply = user.clone().wrap_reply().await?;
+    let user = get_user(token).await;
+    let user = match_result_err(user)?;
+
     // TODO [#29]: add some concurrency here
     // Convert simple trip to internal problem
     let problem = trip.clone().convert_to_internal_problem().await;
