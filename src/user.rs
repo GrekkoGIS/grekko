@@ -84,9 +84,6 @@ pub async fn set_user(user: User) -> Option<String> {
 }
 
 pub async fn get_id_from_token(token: String) -> Result<String, Error> {
-    // let valid_jwt = auth::decode_token(token).await?;
-    // let uid = auth::get_uid(valid_jwt).await?;
-
     let valid_jwt = auth::decode_token_unsafe(token).await?;
     let uid = valid_jwt.claims.uid;
 
