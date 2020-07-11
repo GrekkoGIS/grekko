@@ -2,7 +2,7 @@ use std::fs::File;
 
 use csv::{Reader, StringRecord};
 use failure::{Error, ResultExt};
-use redis::{Client, Commands, Connection, RedisResult};
+use redis::{Client, Commands, Connection, RedisError, RedisResult, Value};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
@@ -78,8 +78,8 @@ pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Result<T, Error> {
     });
 
     match result {
-        Err(err) => Err(err),
-        Ok(res) => Ok(serde_json::from_str(res.as_str())?),
+        Err(err) => Err(err.into()),
+        Ok(res) => Ok(serde_json::from_str(&res)?),
     }
 }
 

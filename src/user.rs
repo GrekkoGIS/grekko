@@ -1,11 +1,12 @@
-use crate::auth;
-use crate::redis_manager;
 use failure::{Error, ResultExt};
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
 use vrp_pragmatic::format::solution::Solution;
 use warp::reply::{Json, Response};
 use warp::{reject, Rejection, Reply};
+
+use crate::auth;
+use crate::redis_manager;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct User {
@@ -88,7 +89,8 @@ pub async fn get_user_from_token(token: String) -> Result<User, Error> {
 }
 
 pub async fn get_user_details(uid: String) -> Result<User, Error> {
-    redis_manager::get::<User>("USERS", uid.as_str())
+    let user = redis_manager::get::<String>("USERS", uid.as_str())?;
+    Ok(serde_json::from_str(&user)?)
 }
 
 pub async fn set_user(user: User) -> Option<String> {
@@ -115,7 +117,6 @@ pub async fn get_id_from_token(token: String) -> Result<String, Error> {
 
 #[cfg(test)]
 mod tests {
-
     #[tokio::test]
     async fn test_get_user_claims() {}
 }
