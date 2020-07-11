@@ -28,3 +28,4 @@ osrm = { path = "/Volumes/dev/osrm-rs" }
 reqwest = "0.10.6"
 failure = "0.1.8"
 alcoholic_jwt = "1.0.0"
+jsonwebtoken = "7.2.0"

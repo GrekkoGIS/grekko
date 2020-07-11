@@ -25,7 +25,7 @@ mod request;
 mod solver;
 pub mod user;
 
-pub async fn start_server(addr: SocketAddr) {
+pub async fn start_server(address: SocketAddr) {
     tokio::task::spawn(async {
         geocoding::get_postcodes();
     });
@@ -96,6 +96,6 @@ pub async fn start_server(addr: SocketAddr) {
         // .with(warp::compression::gzip())
         .with(&cors);
 
-    log::info!("Server is starting on {}", addr);
-    warp::serve(routes).run(addr).await;
+    log::info!("Server is starting on {}", address);
+    warp::serve(routes).run(address).await;
 }

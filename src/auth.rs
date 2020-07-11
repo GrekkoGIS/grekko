@@ -1,7 +1,12 @@
 use alcoholic_jwt::{token_kid, validate, ValidJWT, Validation, JWKS};
 use failure::ResultExt;
+use jsonwebtoken::TokenData;
 use log::debug;
 
+struct Claims {
+    pub uid: String,
+    pub sub: String,
+}
 async fn validate_token(token: String) -> Result<ValidJWT, failure::Error> {
     let keys = get_jwks().await?;
 
@@ -71,6 +76,17 @@ pub(crate) async fn decode_token(token: String) -> Result<ValidJWT, failure::Err
         .with_context(|_| "Failed to unwrap the token")?;
 
     Ok(token_data)
+}
+pub(crate) async fn decode_token_unsafe(
+    token: String,
+) -> Result<TokenData<Claims>, failure::Error> {
+    let token_index = 1;
+    let token: Vec<&str> = token.split("Bearer ").collect();
+    let token = token
+        .get(token_index)
+        .ok_or_else(|| failure::err_msg("Failed to get the token index"))?;
+
+    Ok(jsonwebtoken::dangerous_insecure_decode(&token)?)
 }
 pub(crate) async fn get_uid(token_data: ValidJWT) -> Result<String, failure::Error> {
     let uid = token_data
