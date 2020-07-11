@@ -168,7 +168,8 @@ async fn build_matrix(trip: &request::SimpleTrip) -> Result<Matrix, Error> {
         .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
         .partition(Result::is_ok);
     let vehicles: Vec<Location> = vehicles.into_iter().map(Result::unwrap).collect();
-    let errors: Vec<_> = errors.into_iter().map(Result::unwrap_err).collect();
+    let errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
+    log::debug!("Errors from iterating vehicles: {:?}", errors);
 
     let matrix_vehicles: Vec<Vec<f32>> = vehicles
         .into_iter()
@@ -183,7 +184,8 @@ async fn build_matrix(trip: &request::SimpleTrip) -> Result<Matrix, Error> {
         .partition(Result::is_ok);
 
     let jobs: Vec<Location> = jobs.into_iter().map(Result::unwrap).collect();
-    let errors: Vec<_> = errors.into_iter().map(Result::unwrap_err).collect();
+    let errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
+    log::debug!("Errors from iterating jobs: {:?}", errors);
 
     let matrix_jobs: Vec<Vec<f32>> = jobs
         .into_iter()

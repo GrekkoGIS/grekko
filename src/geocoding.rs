@@ -52,10 +52,14 @@ pub const COORDINATES_SEPARATOR: &str = ";";
 pub fn lookup_coordinates(query: String) -> Result<Location, Error> {
     let coordinates: String = reverse_search(query.clone());
     let coordinates: Vec<&str> = coordinates.split(';').collect();
-    Ok(Location {
+    let location = Location {
         lat: coordinates[0].parse()?,
         lng: coordinates[1].parse()?,
-    })
+    };
+    if location.lng == 0.0 {
+        log::debug!("Location is invalid for: {:?}", query);
+    }
+    Ok(location)
 }
 
 pub fn get_postcodes() -> bool {
