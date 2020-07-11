@@ -5,8 +5,8 @@ use serde::Deserialize;
 use vrp_pragmatic::format::Location;
 
 use crate::redis_manager;
-use failure::Error;
 use failure::_core::convert::Infallible;
+use failure::{Error, ResultExt};
 
 #[derive(Deserialize)]
 pub struct Geocoding {
