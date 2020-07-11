@@ -5,7 +5,7 @@ use log::debug;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Claims {
     pub uid: String,
     pub sub: String,
@@ -20,6 +20,7 @@ pub(crate) async fn decode_token_unsafe(
         .get(token_index)
         .ok_or_else(|| failure::err_msg("Failed to get the token index"))?;
 
+    log::debug!("Decoding token `{}`", token);
     Ok(jsonwebtoken::dangerous_insecure_decode(&token)?)
 }
 
