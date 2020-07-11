@@ -113,7 +113,10 @@ where
 fn match_result_err<T>(value: Result<T, Error>) -> Result<T, Rejection> {
     match value {
         Ok(value) => Ok(value),
-        Err(_) => Err(reject::reject()),
+        Err(err) => {
+            log::error!("Failed to match result: `{}`", err);
+            Err(reject::reject())
+        }
     }
 }
 
