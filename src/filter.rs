@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use failure::Error;
 use serde::Serialize;
+use tokio::stream::StreamExt;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
 use warp::http::Method;
@@ -13,6 +14,7 @@ use warp::{reject, Filter, Rejection};
 use crate::geocoding::{forward_search, reverse_search};
 use crate::user::{get_id_from_token, get_user, set_user, User};
 use crate::{geocoding, osrm_service, request, solver};
+use vrp_pragmatic::format::Location;
 
 pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
@@ -66,8 +68,10 @@ pub async fn simple_trip(
     // TODO [#29]: add some concurrency here
     // Convert simple trip to internal problem
     let problem = trip.clone().convert_to_internal_problem().await;
+    let problem = match_result_err(problem)?;
     // Convert internal problem to a core problem
     let core_problem = problem.read_pragmatic();
+
     // Create an ARC for it
     let problem =
         Arc::new(core_problem.expect("Could not read a pragmatic problem into a core problem"));
@@ -78,7 +82,9 @@ pub async fn simple_trip(
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
 
     // TODO [#20]: this context builder is silly, refactor it
-    let problem: Problem = trip.convert_to_internal_problem().await;
+    let problem = trip.convert_to_internal_problem().await;
+    let problem = match_result_err(problem)?;
+
     let context = CheckerContext::new(problem, None, solution);
 
     if let Err(err) = context.check() {
@@ -128,10 +134,11 @@ pub async fn simple_trip_matrix(
     let user = match_result_err(user)?;
 
     let problem = trip.clone().convert_to_internal_problem().await;
+    let problem = match_result_err(problem)?;
+    let problem_cloned = problem.clone();
 
     let matrix = build_matrix(&trip).await;
     let matrix = match_result_err(matrix)?;
-
     let matrix_copy = matrix.clone();
 
     let problem = get_core_problem(problem, Some(vec![matrix]));
@@ -141,9 +148,9 @@ pub async fn simple_trip_matrix(
     let (solution, _) =
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
 
-    let problem: Problem = trip.convert_to_internal_problem().await;
+    // let problem: Problem = trip.convert_to_internal_problem().await;
 
-    let context = CheckerContext::new(problem, Some(vec![matrix_copy]), solution);
+    let context = CheckerContext::new(problem_cloned, Some(vec![matrix_copy]), solution);
     if let Err(err) = context.check() {
         format!("unfeasible solution in '{}': '{}'", "name", err);
     }
@@ -154,18 +161,32 @@ pub async fn simple_trip_matrix(
 }
 
 async fn build_matrix(trip: &request::SimpleTrip) -> Result<Matrix, Error> {
-    let matrix_vehicles: Vec<Vec<f32>> = trip
+    let (vehicles, errors): (Vec<_>, Vec<_>) = trip
         .clone()
         .coordinate_vehicles
         .iter()
         .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
+        .partition(Result::is_ok);
+    let vehicles: Vec<Location> = vehicles.into_iter().map(Result::unwrap).collect();
+    let errors: Vec<_> = errors.into_iter().map(Result::unwrap_err).collect();
+
+    let matrix_vehicles: Vec<Vec<f32>> = vehicles
+        .into_iter()
         .map(|location| vec![location.lng as f32, location.lat as f32])
         .collect();
-    let matrix_jobs: Vec<Vec<f32>> = trip
+
+    let (jobs, errors): (Vec<_>, Vec<_>) = trip
         .clone()
         .coordinate_jobs
         .iter()
         .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
+        .partition(Result::is_ok);
+
+    let jobs: Vec<Location> = jobs.into_iter().map(Result::unwrap).collect();
+    let errors: Vec<_> = errors.into_iter().map(Result::unwrap_err).collect();
+
+    let matrix_jobs: Vec<Vec<f32>> = jobs
+        .into_iter()
         .map(|location| vec![location.lng as f32, location.lat as f32])
         .collect();
     let concat = [&matrix_jobs[..], &matrix_vehicles[..]].concat();

@@ -23,8 +23,6 @@ pub fn map_to_single_dimensional_array(matrix: Vec<Vec<f32>>) -> Vec<i64> {
 }
 
 pub fn trip(coords: Vec<Vec<f32>>) -> Result<(Vec<Vec<f32>>, Vec<Vec<f32>>), Error> {
-    // let trip_durations = trip_durations(coords)?;
-
     let trip_durations = generic_trip(&coords, |osrm, index, destinations| {
         build_source_duration(&osrm, index, &destinations)
     })?;

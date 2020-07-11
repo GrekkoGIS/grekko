@@ -1,3 +1,4 @@
+use chrono::Duration;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use vrp_pragmatic::format::problem::Fleet as ProblemFleet;
@@ -9,7 +10,7 @@ use vrp_pragmatic::format::problem::{
 use vrp_pragmatic::format::{problem, Location};
 
 use crate::geocoding;
-use chrono::Duration;
+use failure::Error;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -159,19 +160,19 @@ pub struct SimpleTrip {
 }
 
 impl SimpleTrip {
-    pub async fn convert_to_internal_problem(&self) -> problem::Problem {
-        problem::Problem {
+    pub async fn convert_to_internal_problem(&self) -> Result<problem::Problem, Error> {
+        Ok(problem::Problem {
             plan: ProblemPlan {
-                jobs: self.build_jobs(),
+                jobs: self.build_jobs()?,
                 relations: None,
             },
             fleet: ProblemFleet {
-                vehicles: self.build_vehicles(),
+                vehicles: self.build_vehicles()?,
                 profiles: vec![self.get_simple_profile()],
             },
             objectives: None,
             config: None,
-        }
+        })
     }
 
     fn get_simple_profile(&self) -> Profile {
@@ -185,7 +186,7 @@ impl SimpleTrip {
         }
     }
 
-    fn build_jobs(&self) -> Vec<ProblemJob> {
+    fn build_jobs(&self) -> Result<Vec<ProblemJob>, Error> {
         const JOB_LENGTH: f64 = 120.0;
 
         self.coordinate_jobs
@@ -201,7 +202,7 @@ impl SimpleTrip {
                     replacements: None,
                     services: Some(vec![JobTask {
                         places: vec![JobPlace {
-                            location: geocoding::lookup_coordinates(location),
+                            location: geocoding::lookup_coordinates(location)?,
                             // TODO [#23]: add constants to this duration
                             // TODO [#24]: parameterise duration for the simple type as an optional query parameter
                             duration: Duration::minutes(JOB_LENGTH as i64).num_seconds() as f64,
@@ -217,7 +218,7 @@ impl SimpleTrip {
             .collect()
     }
 
-    fn build_vehicles(&self) -> Vec<VehicleType> {
+    fn build_vehicles(&self) -> Result<Vec<VehicleType>, Error> {
         self.coordinate_vehicles
             .to_vec()
             .into_par_iter()
@@ -236,7 +237,7 @@ impl SimpleTrip {
                     shifts: vec![VehicleShift {
                         start: VehiclePlace {
                             time: chrono::Utc::now().to_rfc3339(),
-                            location: geocoding::lookup_coordinates(vehicle),
+                            location: geocoding::lookup_coordinates(vehicle)?,
                         },
                         end: None,
                         breaks: None,

@@ -49,26 +49,13 @@ cached! {
 pub const POSTCODE_TABLE_NAME: &str = "POSTCODE";
 pub const COORDINATES_SEPARATOR: &str = ";";
 
-pub fn lookup_coordinates(query: String) -> Location {
+pub fn lookup_coordinates(query: String) -> Result<Location, Error> {
     let coordinates: String = reverse_search(query.clone());
     let coordinates: Vec<&str> = coordinates.split(';').collect();
-    Location {
-        lat: coordinates[0].parse().unwrap_or_else(|_| {
-            //TODO remove these panic and add to an unassigned list
-            log::error!(
-                "There weren't enough coordinates to extract latitude for postcode {}",
-                query
-            );
-            0.0
-        }),
-        lng: coordinates[1].parse().unwrap_or_else(|_| {
-            log::error!(
-                "There weren't enough coordinates to extract longitude for postcode {}",
-                query
-            );
-            0.0
-        }),
-    }
+    Ok(Location {
+        lat: coordinates[0].parse()?,
+        lng: coordinates[1].parse()?,
+    })
 }
 
 pub fn get_postcodes() -> bool {
@@ -77,9 +64,12 @@ pub fn get_postcodes() -> bool {
 
 pub fn reverse_search(query: String) -> String {
     if get_postcodes() {
-        match reverse_search_cache(query) {
+        match reverse_search_cache(query.clone()) {
             Ok(value) => value,
-            Err(_) => String::from("EMPTY"), //TODO this is a poop error message
+            Err(err) => {
+                log::error!("Failed to find a query for {}", query);
+                String::from("EMPTY")
+            } //TODO this is a poop error message
         }
     } else {
         reverse_search_file(query)
@@ -89,7 +79,10 @@ pub fn reverse_search(query: String) -> String {
 pub fn reverse_search_cache(query: String) -> Result<String, Error> {
     let postcode = build_cache_key(query);
     let postcode = postcode.as_str();
-    redis_manager::get_coordinates(postcode)
+    redis_manager::get_coordinates(postcode).map_err(|err| {
+        log::error!("Failed to get coordinates for {}", err);
+        err
+    })
 }
 
 fn build_cache_key(query: String) -> String {

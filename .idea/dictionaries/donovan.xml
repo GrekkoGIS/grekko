@@ -2,6 +2,7 @@
   <dictionary name="donovan">
     <words>
       <w>geocoding</w>
+      <w>osrm</w>
     </words>
   </dictionary>
 </component>
