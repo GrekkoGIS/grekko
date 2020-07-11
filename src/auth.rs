@@ -2,8 +2,11 @@ use alcoholic_jwt::{token_kid, validate, ValidJWT, Validation, JWKS};
 use failure::ResultExt;
 use jsonwebtoken::TokenData;
 use log::debug;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
 
-struct Claims {
+#[derive(Deserialize)]
+pub struct Claims {
     pub uid: String,
     pub sub: String,
 }
