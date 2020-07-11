@@ -163,11 +163,11 @@ impl SimpleTrip {
     pub async fn convert_to_internal_problem(&self) -> Result<problem::Problem, Error> {
         Ok(problem::Problem {
             plan: ProblemPlan {
-                jobs: self.build_jobs()?,
+                jobs: self.build_jobs(),
                 relations: None,
             },
             fleet: ProblemFleet {
-                vehicles: self.build_vehicles()?,
+                vehicles: self.build_vehicles(),
                 profiles: vec![self.get_simple_profile()],
             },
             objectives: None,
@@ -186,7 +186,7 @@ impl SimpleTrip {
         }
     }
 
-    fn build_jobs(&self) -> Result<Vec<ProblemJob>, Error> {
+    fn build_jobs(&self) -> Vec<ProblemJob> {
         const JOB_LENGTH: f64 = 120.0;
 
         self.coordinate_jobs
@@ -202,7 +202,7 @@ impl SimpleTrip {
                     replacements: None,
                     services: Some(vec![JobTask {
                         places: vec![JobPlace {
-                            location: geocoding::lookup_coordinates(location)?,
+                            location: geocoding::lookup_coordinates(location).unwrap(), //TODO fix this unwrap
                             // TODO [#23]: add constants to this duration
                             // TODO [#24]: parameterise duration for the simple type as an optional query parameter
                             duration: Duration::minutes(JOB_LENGTH as i64).num_seconds() as f64,
@@ -218,7 +218,7 @@ impl SimpleTrip {
             .collect()
     }
 
-    fn build_vehicles(&self) -> Result<Vec<VehicleType>, Error> {
+    fn build_vehicles(&self) -> Vec<VehicleType> {
         self.coordinate_vehicles
             .to_vec()
             .into_par_iter()
@@ -237,7 +237,7 @@ impl SimpleTrip {
                     shifts: vec![VehicleShift {
                         start: VehiclePlace {
                             time: chrono::Utc::now().to_rfc3339(),
-                            location: geocoding::lookup_coordinates(vehicle)?,
+                            location: geocoding::lookup_coordinates(vehicle).unwrap(), //TODO remove
                         },
                         end: None,
                         breaks: None,
