@@ -51,14 +51,16 @@ pub const COORDINATES_SEPARATOR: &str = ";";
 
 pub fn lookup_coordinates(query: String) -> Result<Location, Error> {
     let coordinates: String = reverse_search(query.clone());
+    if coordinates == String::from("99.999999;0.000000") {
+        let msg = format!("Location is invalid for: {:?}", query);
+        log::error!("{}", msg);
+        return Err(failure::err_msg(msg));
+    }
     let coordinates: Vec<&str> = coordinates.split(';').collect();
     let location = Location {
         lat: coordinates[0].parse()?,
         lng: coordinates[1].parse()?,
     };
-    if location.lng == 0.0 {
-        log::debug!("Location is invalid for: {:?}", query);
-    }
     Ok(location)
 }
 
@@ -110,7 +112,7 @@ pub fn reverse_search_file(query: String) -> String {
                 .iter()
                 .any(|field| field == query.replace(" ", "").replace("-", " ").as_bytes())
         })
-        .unwrap_or_else(|| panic!("Unable to find coordinates for {}", query))
+        .unwrap_or_else(|| panic!("Unable to find coordinates for {}", query)) // TODO: dont panic ever
         .expect("Find result could not be unwrapped!");
 
     format!(
@@ -148,7 +150,7 @@ pub fn forward_search_file(lat_lon: Vec<f64>) -> String {
                 .iter()
                 .any(|field| field == lat_lon.first().unwrap().to_string().as_bytes())
         })
-        .unwrap_or_else(|| panic!("Unable to find a postcode for {:?}", lat_lon))
+        .unwrap_or_else(|| panic!("Unable to find a postcode for {:?}", lat_lon)) // TODO: dont ever panic
         .expect("Find result could not be unwrapped!");
     String::from_utf8(res.get(postcode_index).unwrap().to_owned())
         .expect("Unable to unwrap postcode")
