@@ -1,18 +1,18 @@
-use crate::{geocoding, osrm_service, request, solver};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use failure::Error;
+use serde::Serialize;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
-
 use warp::http::Method;
+use warp::reply::Json;
+use warp::{reject, Filter, Rejection};
 
 use crate::geocoding::{forward_search, reverse_search};
 use crate::user::{get_id_from_token, get_user, set_user, User};
-use serde::Serialize;
-use warp::reply::Json;
-use warp::{reject, Filter, Rejection};
+use crate::{geocoding, osrm_service, request, solver};
 
 pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
@@ -27,6 +27,7 @@ pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Reje
         }
     }
 }
+
 pub async fn set_user_from_token(token: String, user: User) -> Result<Json, Rejection> {
     let user_check = get_id_from_token(token).await;
 
@@ -45,6 +46,7 @@ pub async fn search_coordinates(
     let result = reverse_search(postcode);
     Ok(result)
 }
+
 pub async fn search_postcode(
     lat: f64,
     lon: f64,
@@ -108,11 +110,19 @@ where
     }
 }
 
+fn match_result_err<T>(value: Result<T, Error>) -> Result<T, Rejection> {
+    match value {
+        Ok(value) => Ok(value),
+        Err(_) => Err(reject::reject()),
+    }
+}
+
 pub async fn simple_trip_matrix(
     token: String,
     trip: request::SimpleTrip,
 ) -> Result<impl warp::Reply, Rejection> {
-    // get_user_from_token(token).await.unwrap();
+    let user = get_user(token).await;
+    let user = match_result_err(user)?;
 
     let problem = trip.clone().convert_to_internal_problem().await;
 
@@ -133,6 +143,8 @@ pub async fn simple_trip_matrix(
     if let Err(err) = context.check() {
         format!("unfeasible solution in '{}': '{}'", "name", err);
     }
+    let user = user.add_route(context.solution.clone());
+    set_user(user).await;
 
     Ok(warp::reply::json(&context.solution))
 }
