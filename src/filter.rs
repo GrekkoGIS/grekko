@@ -161,9 +161,9 @@ pub async fn simple_trip_matrix(
         format!("unfeasible solution in '{}': '{}'", "name", err);
     }
     let user = user.add_route(context.solution.clone());
-    set_user(user).await;
+    let route_set_result = set_user(user).await;
 
-    Ok(warp::reply::json(&context.solution))
+    match_option_to_warp(route_set_result, Some(&context.solution))
 }
 
 async fn build_matrix(vehicles: &Vec<Location>, jobs: &Vec<Location>) -> Result<Matrix, Error> {
