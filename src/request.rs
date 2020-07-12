@@ -161,13 +161,15 @@ pub struct SimpleTrip {
 
 impl SimpleTrip {
     pub async fn convert_to_internal_problem(&self) -> Result<problem::Problem, Error> {
+        let vehicle_locations = build_locations(&self.coordinate_vehicles);
+        let job_locations = build_locations(&self.coordinate_jobs);
         Ok(problem::Problem {
             plan: ProblemPlan {
-                jobs: self.build_jobs(),
+                jobs: build_jobs(job_locations),
                 relations: None,
             },
             fleet: ProblemFleet {
-                vehicles: self.build_vehicles(),
+                vehicles: build_vehicles(vehicle_locations),
                 profiles: vec![self.get_simple_profile()],
             },
             objectives: None,
@@ -185,89 +187,80 @@ impl SimpleTrip {
             speed: Some(FOURTY_MPH_IN_METRES_PER_SECOND), // TODO: average 40mph
         }
     }
+}
+pub fn build_locations(coordinates: &Vec<String>) -> Vec<Location> {
+    let (locations, errors): (Vec<_>, Vec<_>) = coordinates
+        .into_iter()
+        .map(|location| geocoding::lookup_coordinates(location))
+        .partition(Result::is_ok);
+    let locations: Vec<Location> = locations.into_iter().map(Result::unwrap).collect();
+    let errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
+    // TODO: log these better
+    locations
+}
 
-    fn build_jobs(&self) -> Vec<ProblemJob> {
-        const JOB_LENGTH: f64 = 120.0;
-
-        let (locations, errors): (Vec<_>, Vec<_>) = self
-            .coordinate_jobs
-            .to_vec()
-            .into_iter()
-            .map(|location| geocoding::lookup_coordinates(location))
-            .partition(Result::is_ok);
-        let locations: Vec<Location> = locations.into_iter().map(Result::unwrap).collect();
-        let errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
-
-        locations
-            .to_vec()
-            .into_par_iter()
-            .enumerate()
-            .map(|(index, location)| {
-                ProblemJob {
-                    id: index.to_string(),
-                    // TODO [#21]: potentially switch on the type of job to decide whether its a pickup, delivery or service
-                    pickups: None,
-                    deliveries: None,
-                    replacements: None,
-                    services: Some(vec![JobTask {
-                        places: vec![JobPlace {
-                            location, // TODO: fix this unwrap
-                            // TODO [#23]: add constants to this duration
-                            // TODO [#24]: parameterise duration for the simple type as an optional query parameter
-                            duration: Duration::minutes(JOB_LENGTH as i64).num_seconds() as f64,
-                            times: None,
-                        }],
-                        demand: None,
-                        tag: Some(String::from("Simple 120 minute task")),
-                    }]),
-                    priority: None,
-                    skills: None,
-                }
-            })
-            .collect()
-    }
-
-    fn build_vehicles(&self) -> Vec<VehicleType> {
-        let (locations, errors): (Vec<_>, Vec<_>) = self
-            .coordinate_vehicles
-            .to_vec()
-            .into_iter()
-            .map(|location| geocoding::lookup_coordinates(location))
-            .partition(Result::is_ok);
-        let locations: Vec<Location> = locations.into_iter().map(Result::unwrap).collect();
-        let errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
-
-        locations
-            .to_vec()
-            .into_par_iter()
-            .enumerate()
-            .map(|(i, vehicle)| {
-                VehicleType {
-                    type_id: i.to_string(),
-                    // TODO [#35]: type_id: "car".to_string(), for some reason this needs to be unique?
-                    vehicle_ids: vec![i.to_string()],
-                    profile: "normal_car".to_string(),
-                    costs: VehicleCosts {
-                        fixed: Some(22.0),
-                        distance: 0.0002,
-                        time: 0.004806,
+pub fn build_vehicles(locations: Vec<Location>) -> Vec<VehicleType> {
+    locations
+        .to_vec()
+        .into_par_iter()
+        .enumerate()
+        .map(|(i, vehicle)| {
+            VehicleType {
+                type_id: i.to_string(),
+                // TODO [#35]: type_id: "car".to_string(), for some reason this needs to be unique?
+                vehicle_ids: vec![i.to_string()],
+                profile: "normal_car".to_string(),
+                costs: VehicleCosts {
+                    fixed: Some(22.0),
+                    distance: 0.0002,
+                    time: 0.004806,
+                },
+                shifts: vec![VehicleShift {
+                    start: VehiclePlace {
+                        time: chrono::Utc::now().to_rfc3339(),
+                        location: vehicle,
                     },
-                    shifts: vec![VehicleShift {
-                        start: VehiclePlace {
-                            time: chrono::Utc::now().to_rfc3339(),
-                            location: vehicle,
-                        },
-                        end: None,
-                        breaks: None,
-                        reloads: None,
+                    end: None,
+                    breaks: None,
+                    reloads: None,
+                }],
+                capacity: vec![5],
+                skills: None,
+                limits: None,
+            }
+        })
+        .collect()
+}
+
+pub fn build_jobs(locations: Vec<Location>) -> Vec<ProblemJob> {
+    const JOB_LENGTH: f64 = 120.0;
+
+    locations
+        .into_par_iter()
+        .enumerate()
+        .map(|(index, location)| {
+            ProblemJob {
+                id: index.to_string(),
+                // TODO [#21]: potentially switch on the type of job to decide whether its a pickup, delivery or service
+                pickups: None,
+                deliveries: None,
+                replacements: None,
+                services: Some(vec![JobTask {
+                    places: vec![JobPlace {
+                        location, // TODO: fix this unwrap
+                        // TODO [#23]: add constants to this duration
+                        // TODO [#24]: parameterise duration for the simple type as an optional query parameter
+                        duration: Duration::minutes(JOB_LENGTH as i64).num_seconds() as f64,
+                        times: None,
                     }],
-                    capacity: vec![5],
-                    skills: None,
-                    limits: None,
-                }
-            })
-            .collect()
-    }
+                    demand: None,
+                    tag: Some(String::from("Simple 120 minute task")),
+                }]),
+                priority: None,
+                skills: None,
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]
