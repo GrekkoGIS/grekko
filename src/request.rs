@@ -159,24 +159,25 @@ pub struct SimpleTrip {
     pub coordinate_jobs: Vec<String>,
 }
 
+pub async fn convert_to_internal_problem(
+    simple_trip: &SimpleTrip,
+    vehicles: &Vec<Location>,
+    jobs: &Vec<Location>,
+) -> Result<problem::Problem, Error> {
+    Ok(problem::Problem {
+        plan: ProblemPlan {
+            jobs: build_jobs(jobs),
+            relations: None,
+        },
+        fleet: ProblemFleet {
+            vehicles: build_vehicles(vehicles),
+            profiles: vec![simple_trip.get_simple_profile()],
+        },
+        objectives: None,
+        config: None,
+    })
+}
 impl SimpleTrip {
-    pub async fn convert_to_internal_problem(&self) -> Result<problem::Problem, Error> {
-        let vehicle_locations = build_locations(&self.coordinate_vehicles);
-        let job_locations = build_locations(&self.coordinate_jobs);
-        Ok(problem::Problem {
-            plan: ProblemPlan {
-                jobs: build_jobs(job_locations),
-                relations: None,
-            },
-            fleet: ProblemFleet {
-                vehicles: build_vehicles(vehicle_locations),
-                profiles: vec![self.get_simple_profile()],
-            },
-            objectives: None,
-            config: None,
-        })
-    }
-
     fn get_simple_profile(&self) -> Profile {
         const FOURTY_MPH_IN_METRES_PER_SECOND: f64 = 17.0;
         let normal_car = "normal_car".to_string();
@@ -199,7 +200,7 @@ pub fn build_locations(coordinates: &Vec<String>) -> Vec<Location> {
     locations
 }
 
-pub fn build_vehicles(locations: Vec<Location>) -> Vec<VehicleType> {
+pub fn build_vehicles(locations: &Vec<Location>) -> Vec<VehicleType> {
     locations
         .to_vec()
         .into_par_iter()
@@ -232,7 +233,7 @@ pub fn build_vehicles(locations: Vec<Location>) -> Vec<VehicleType> {
         .collect()
 }
 
-pub fn build_jobs(locations: Vec<Location>) -> Vec<ProblemJob> {
+pub fn build_jobs(locations: &Vec<Location>) -> Vec<ProblemJob> {
     const JOB_LENGTH: f64 = 120.0;
 
     locations
@@ -247,8 +248,7 @@ pub fn build_jobs(locations: Vec<Location>) -> Vec<ProblemJob> {
                 replacements: None,
                 services: Some(vec![JobTask {
                     places: vec![JobPlace {
-                        location, // TODO: fix this unwrap
-                        // TODO [#23]: add constants to this duration
+                        location: location.clone(), // TODO: fix this clone
                         // TODO [#24]: parameterise duration for the simple type as an optional query parameter
                         duration: Duration::minutes(JOB_LENGTH as i64).num_seconds() as f64,
                         times: None,

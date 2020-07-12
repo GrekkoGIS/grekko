@@ -13,7 +13,7 @@ use warp::reply::Json;
 use warp::{reject, Filter, Rejection};
 
 use crate::geocoding::{forward_search, reverse_search};
-use crate::request::{build_locations, SimpleTrip};
+use crate::request::{build_locations, convert_to_internal_problem, SimpleTrip};
 use crate::user::{get_id_from_token, get_user, set_user, User};
 use crate::{geocoding, osrm_service, request, solver};
 use log::kv::Source;
@@ -71,8 +71,13 @@ pub async fn simple_trip(
 
     // TODO [#29]: add some concurrency here
     // Convert simple trip to internal problem TODO we do this twice?
-    let problem = trip.clone().convert_to_internal_problem().await;
+    let vehicle_locations = build_locations(&trip.coordinate_vehicles);
+    let job_locations = build_locations(&trip.coordinate_jobs);
+
+    let problem = convert_to_internal_problem(&trip, &vehicle_locations, &job_locations).await;
     let problem = match_result_err(problem)?;
+    let problem_clone = problem.clone();
+
     // Convert internal problem to a core problem
     let core_problem = problem.read_pragmatic();
 
@@ -85,11 +90,7 @@ pub async fn simple_trip(
     let (solution, _) =
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
 
-    // TODO [#20]: this context builder is silly, refactor it
-    let problem = trip.convert_to_internal_problem().await;
-    let problem = match_result_err(problem)?;
-
-    let context = CheckerContext::new(problem, None, solution);
+    let context = CheckerContext::new(problem_clone, None, solution);
 
     if let Err(err) = context.check() {
         format!("unfeasible solution in '{}': '{}'", "name", err);
@@ -137,14 +138,15 @@ pub async fn simple_trip_matrix(
     let user = match_result_err(get_user(token).await)?;
 
     // Here we convert postcodes to longlat
-    let problem = match_result_err(trip.convert_to_internal_problem().await)?;
-    let problem_cloned = problem.clone();
-
     let vehicle_locations = build_locations(&trip.coordinate_vehicles);
     let job_locations = build_locations(&trip.coordinate_jobs);
 
-    // Here we convert postcodes to longlat too
-    let matrix = match_result_err(build_matrix(vehicle_locations, job_locations).await)?;
+    let problem = match_result_err(
+        convert_to_internal_problem(&trip, &vehicle_locations, &job_locations).await,
+    )?;
+    let problem_cloned = problem.clone();
+
+    let matrix = match_result_err(build_matrix(&vehicle_locations, &job_locations).await)?;
     let matrix_copy = matrix.clone();
 
     let problem = get_core_problem(problem, Some(vec![matrix]));
@@ -164,7 +166,7 @@ pub async fn simple_trip_matrix(
     Ok(warp::reply::json(&context.solution))
 }
 
-async fn build_matrix(vehicles: Vec<Location>, jobs: Vec<Location>) -> Result<Matrix, Error> {
+async fn build_matrix(vehicles: &Vec<Location>, jobs: &Vec<Location>) -> Result<Matrix, Error> {
     let matrix_vehicles = build_matrix_from_coordinates(&vehicles);
     let matrix_jobs = build_matrix_from_coordinates(&jobs);
     let concat = [&matrix_jobs[..], &matrix_vehicles[..]].concat();
