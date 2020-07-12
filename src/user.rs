@@ -41,7 +41,7 @@ impl User {
         let user = get_user_details(self.uid).await;
         match user {
             Ok(user) => Ok(warp::reply::json(&user)),
-            Err(res) => Err(reject::custom(UserFail::new(String::new()))), //TODO
+            Err(err) => Err(reject::reject()), //TODO
         }
     }
 

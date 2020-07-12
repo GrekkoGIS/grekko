@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use failure::Error;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tokio::stream::StreamExt;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
@@ -17,15 +17,18 @@ use crate::request::{build_locations, convert_to_internal_problem, SimpleTrip};
 use crate::user::{get_id_from_token, get_user, set_user, User};
 use crate::{geocoding, osrm_service, request, solver};
 use log::kv::Source;
+use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
 pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
 
-    match_result_err(user).map_err(|err| {
-        log::error!("Error getting user: `{:?}`", err);
-        err
-    })
+    match_result_err(user)
+        .map(|user| warp::reply::json(&user))
+        .map_err(|err| {
+            log::error!("Error getting user: `{:?}`", err);
+            err
+        })
 }
 
 pub async fn set_user_from_token(token: String, user_request: User) -> Result<Json, Rejection> {
@@ -179,22 +182,6 @@ fn build_matrix_from_coordinates(locations: &Vec<Location>) -> Vec<Vec<f32>> {
         .map(|location| vec![location.lng as f32, location.lat as f32])
         .collect();
     matrix_locations
-}
-
-fn check_for_dupes(coordinates: &Vec<String>) {
-    let mut sorted = coordinates.clone();
-    let mut map = HashMap::new();
-    for e in &sorted {
-        map.entry(e).or_insert(vec![]).push(e);
-    }
-    let mut dupes = vec![];
-    map.iter().for_each(|(key, value)| {
-        if value.len() > 1 {
-            dupes.push(key)
-        } else {
-        }
-    });
-    log::debug!("Found duplicate coordinates {:?}", dupes);
 }
 
 fn get_core_problem(
