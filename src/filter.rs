@@ -140,16 +140,23 @@ pub async fn simple_trip_matrix(
 ) -> Result<impl warp::Reply, Rejection> {
     let user = match_result_err(get_user(token).await)?;
 
-    // Here we convert postcodes to longlat
+    let context = calculate_trip(&trip).await;
+    let context = match_result_err(context)?;
+
+    let user = user.add_route(context.solution.clone());
+    let route_set_result = set_user(user).await;
+
+    match_option_to_warp(route_set_result, Some(&context.solution))
+}
+
+async fn calculate_trip(trip: &SimpleTrip) -> Result<CheckerContext, Error> {
     let vehicle_locations = build_locations(&trip.coordinate_vehicles);
     let job_locations = build_locations(&trip.coordinate_jobs);
 
-    let problem = match_result_err(
-        convert_to_internal_problem(&trip, &vehicle_locations, &job_locations).await,
-    )?;
+    let problem = convert_to_internal_problem(&trip, &vehicle_locations, &job_locations).await?;
     let problem_cloned = problem.clone();
 
-    let matrix = match_result_err(build_matrix(&vehicle_locations, &job_locations).await)?;
+    let matrix = build_matrix(&vehicle_locations, &job_locations).await?;
     let matrix_copy = matrix.clone();
 
     let problem = get_core_problem(problem, Some(vec![matrix]));
@@ -163,10 +170,7 @@ pub async fn simple_trip_matrix(
     if let Err(err) = context.check() {
         format!("unfeasible solution in '{}': '{}'", "name", err);
     }
-    let user = user.add_route(context.solution.clone());
-    let route_set_result = set_user(user).await;
-
-    match_option_to_warp(route_set_result, Some(&context.solution))
+    Ok(context)
 }
 
 async fn build_matrix(vehicles: &Vec<Location>, jobs: &Vec<Location>) -> Result<Matrix, Error> {
@@ -206,10 +210,21 @@ pub async fn trip(token: String, _request: Problem) -> Result<impl warp::Reply, 
 
 pub async fn simple_trip_async(
     token: String,
-    _trip: request::SimpleTrip,
+    trip: request::SimpleTrip,
 ) -> Result<impl warp::Reply, Rejection> {
-    get_user_from_token(token).await.unwrap();
-    tokio::task::spawn(async { println!("Hey, i'm gonna be another task") });
+    tokio::task::spawn(async move {
+        let user = get_user(token).await;
+        if let Ok(user) = user {
+            let context = calculate_trip(&trip).await;
+            if let Ok(context) = context {
+                let user = user.add_route(context.solution.clone());
+                let route_set_result = set_user(user).await;
+                if let Some(result) = route_set_result {
+                    log::debug!("Stored user with result {}", result)
+                }
+            }
+        }
+    });
     let reply = warp::reply::reply();
     let response = warp::reply::with_header(reply, "ID", "CHANGEME");
     let response = warp::reply::with_status(response, warp::http::StatusCode::ACCEPTED);
