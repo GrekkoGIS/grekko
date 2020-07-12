@@ -192,7 +192,7 @@ impl SimpleTrip {
         let (locations, errors): (Vec<_>, Vec<_>) = self
             .coordinate_jobs
             .to_vec()
-            .into_par_iter()
+            .into_iter()
             .map(|location| geocoding::lookup_coordinates(location))
             .partition(Result::is_ok);
         let locations: Vec<Location> = locations.into_iter().map(Result::unwrap).collect();
@@ -231,7 +231,7 @@ impl SimpleTrip {
         let (locations, errors): (Vec<_>, Vec<_>) = self
             .coordinate_vehicles
             .to_vec()
-            .into_par_iter()
+            .into_iter()
             .map(|location| geocoding::lookup_coordinates(location))
             .partition(Result::is_ok);
         let locations: Vec<Location> = locations.into_iter().map(Result::unwrap).collect();

@@ -1,5 +1,6 @@
 #![feature(option_result_contains)]
 #![feature(in_band_lifetimes)]
+#![feature(iter_partition_in_place)]
 
 #[macro_use]
 extern crate cached;

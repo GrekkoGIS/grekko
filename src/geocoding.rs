@@ -49,6 +49,7 @@ cached! {
 pub const POSTCODE_TABLE_NAME: &str = "POSTCODE";
 pub const COORDINATES_SEPARATOR: &str = ";";
 
+// TODO this function is being hit twice
 pub fn lookup_coordinates(query: String) -> Result<Location, Error> {
     let coordinates: String = reverse_search(query.clone());
     if coordinates == String::from("99.999999;0.000000") {

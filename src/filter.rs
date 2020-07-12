@@ -7,14 +7,17 @@ use serde::Serialize;
 use tokio::stream::StreamExt;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
+use vrp_pragmatic::format::Location;
 use warp::http::Method;
 use warp::reply::Json;
 use warp::{reject, Filter, Rejection};
 
 use crate::geocoding::{forward_search, reverse_search};
+use crate::request::SimpleTrip;
 use crate::user::{get_id_from_token, get_user, set_user, User};
 use crate::{geocoding, osrm_service, request, solver};
-use vrp_pragmatic::format::Location;
+use log::kv::Source;
+use std::collections::HashMap;
 
 pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
@@ -131,15 +134,12 @@ pub async fn simple_trip_matrix(
     token: String,
     trip: request::SimpleTrip,
 ) -> Result<impl warp::Reply, Rejection> {
-    let user = get_user(token).await;
-    let user = match_result_err(user)?;
+    let user = match_result_err(get_user(token).await)?;
 
-    let problem = trip.clone().convert_to_internal_problem().await;
-    let problem = match_result_err(problem)?;
+    let problem = match_result_err(trip.convert_to_internal_problem().await)?;
     let problem_cloned = problem.clone();
 
-    let matrix = build_matrix(&trip).await;
-    let matrix = match_result_err(matrix)?;
+    let matrix = match_result_err(build_matrix(&trip).await)?;
     let matrix_copy = matrix.clone();
 
     let problem = get_core_problem(problem, Some(vec![matrix]));
@@ -148,8 +148,6 @@ pub async fn simple_trip_matrix(
 
     let (solution, _) =
         solver::get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
-
-    // let problem: Problem = trip.convert_to_internal_problem().await;
 
     let context = CheckerContext::new(problem_cloned, Some(vec![matrix_copy]), solution);
     if let Err(err) = context.check() {
@@ -162,39 +160,39 @@ pub async fn simple_trip_matrix(
 }
 
 async fn build_matrix(trip: &request::SimpleTrip) -> Result<Matrix, Error> {
-    let (vehicles, errors): (Vec<_>, Vec<_>) = trip
-        .clone()
-        .coordinate_vehicles
-        .iter()
-        .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
-        .partition(Result::is_ok);
-    let vehicles: Vec<Location> = vehicles.into_iter().map(Result::unwrap).collect();
-    let errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
-    log::trace!("Errors from iterating vehicles: {:?}", errors);
-
-    let matrix_vehicles: Vec<Vec<f32>> = vehicles
-        .into_iter()
-        .map(|location| vec![location.lng as f32, location.lat as f32])
-        .collect();
-
-    let (jobs, errors): (Vec<_>, Vec<_>) = trip
-        .clone()
-        .coordinate_jobs
-        .iter()
-        .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
-        .partition(Result::is_ok);
-
-    let jobs: Vec<Location> = jobs.into_iter().map(Result::unwrap).collect();
-    let errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
-    log::trace!("Errors from iterating jobs: {:?}", errors);
-
-    let matrix_jobs: Vec<Vec<f32>> = jobs
-        .into_iter()
-        .map(|location| vec![location.lng as f32, location.lat as f32])
-        .collect();
+    let matrix_vehicles = build_matrix_from_coordinates(&trip.coordinate_vehicles);
+    let matrix_jobs = build_matrix_from_coordinates(&trip.coordinate_jobs);
     let concat = [&matrix_jobs[..], &matrix_vehicles[..]].concat();
-
     osrm_service::get_matrix(concat)
+}
+
+fn build_matrix_from_coordinates(coordinates: &Vec<String>) -> Vec<Vec<f32>> {
+    let mut sorted = coordinates.clone();
+    let mut map = HashMap::new();
+    for e in &sorted {
+        map.entry(e).or_insert(vec![]).push(e);
+    }
+    let mut dupes = vec![];
+    map.iter().for_each(|(key, value)| {
+        if value.len() > 1 {
+            dupes.push(key)
+        } else {
+        }
+    });
+    log::debug!("Found duplicate coordinates {:?}", dupes);
+    let (successes, errors): (Vec<_>, Vec<_>) = coordinates
+        .iter()
+        .map(|coordinate| geocoding::lookup_coordinates(String::from(coordinate)))
+        .partition(Result::is_ok);
+    let locations: Vec<Location> = successes.into_iter().map(Result::unwrap).collect();
+    let errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
+    log::trace!("Errors from iterating locations: {:?}", errors);
+
+    let matrix_locations: Vec<Vec<f32>> = locations
+        .into_iter()
+        .map(|location| vec![location.lng as f32, location.lat as f32])
+        .collect();
+    matrix_locations
 }
 
 fn get_core_problem(
