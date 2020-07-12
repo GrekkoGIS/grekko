@@ -201,7 +201,7 @@ fn get_core_problem(
 
 pub async fn trip(token: String, _request: Problem) -> Result<impl warp::Reply, Infallible> {
     get_user_from_token(token).await.unwrap();
-    Ok("result")
+    Ok(())
 }
 
 pub async fn simple_trip_async(
@@ -210,6 +210,7 @@ pub async fn simple_trip_async(
 ) -> Result<impl warp::Reply, Rejection> {
     get_user_from_token(token).await.unwrap();
     tokio::task::spawn(async { println!("Hey, i'm gonna be another task") });
-    // let result = geocoding::search_postcode(vec![lat, lon]);
-    Ok("result")
+    let reply = warp::reply::reply();
+    let response = warp::reply::with_header(reply, "ID", "");
+    Ok(response)
 }
