@@ -44,7 +44,7 @@ pub async fn start_server(address: SocketAddr) {
     let create_user = warp::path!("user" / "create")
         .and(warp::header::<String>(AUTH_HEADER))
         .and(warp::post())
-        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::content_length_limit(1024 * 2))
         .and(warp::body::json::<user::User>())
         .and_then(filter::set_user_from_token);
 
@@ -60,27 +60,27 @@ pub async fn start_server(address: SocketAddr) {
     let simple_trip = warp::path!("routing" / "solver" / "simple")
         .and(warp::header::<String>(AUTH_HEADER))
         .and(warp::post())
-        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::content_length_limit(1024 * 24))
         .and(warp::body::json::<request::SimpleTrip>())
         .and_then(filter::simple_trip);
 
     let simple_trip_matrix = warp::path!("routing" / "solver" / "simple" / "matrix")
         .and(warp::header::<String>(AUTH_HEADER))
         .and(warp::post())
-        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::content_length_limit(1024 * 24))
         .and(warp::body::json::<request::SimpleTrip>())
         .and_then(filter::simple_trip_matrix);
 
     let simple_trip_async = warp::path!("routing" / "solver" / "simple" / "async")
         .and(warp::header::<String>(AUTH_HEADER))
         .and(warp::post())
-        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::content_length_limit(1024 * 24))
         .and(warp::body::json::<request::SimpleTrip>())
         .and_then(filter::simple_trip_async);
 
     let trip = warp::path!("routing" / "solver")
         .and(warp::header::<String>(AUTH_HEADER))
-        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::content_length_limit(1024 * 24))
         .and(warp::body::json())
         .and_then(filter::trip);
 
