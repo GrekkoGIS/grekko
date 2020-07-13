@@ -2,7 +2,7 @@ use std::fs::File;
 
 use csv::{Reader, StringRecord};
 use failure::{Error, ResultExt};
-use redis::{Client, Commands, Connection, RedisError, RedisResult, Value};
+use redis::{Client, Cmd, Commands, Connection, RedisError, RedisResult, Value};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
@@ -89,8 +89,11 @@ pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Result<T, Error> {
     }
 }
 
-pub fn del(table: &str, key: &str) -> Result<String, Error> {
+pub fn hdel(table: &str, key: &str) -> Result<String, Error> {
     connect_and_query(|mut connection| Ok(connection.hdel(table, key)?))
+}
+pub fn del(key: &str) -> Result<String, Error> {
+    connect_and_query(|mut connection| Ok(connection.del(key)?))
 }
 
 pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<String> {
@@ -113,6 +116,41 @@ pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<S
                 "Wrote {} to table: {} with key {} and result {}",
                 value, table, key, res
             );
+            log::debug!("{}", msg);
+            Some(msg)
+        }
+    }
+}
+pub fn set_json<T: Serialize + Display>(key: &str, path: Option<&str>, value: T) -> Option<String> {
+    let client: Client = get_redis_client().expect("Unable to get a redis client");
+    let mut con = client.get_connection().expect("Unable to get a connection");
+
+    let result = if let Some(path) = path {
+        let mut cmd = redis::cmd("JSON.SET");
+        cmd.arg(key).arg(path).arg(
+            serde_json::to_string(&value)
+                .with_context(|err| "Unable to serialize value")
+                .ok()?,
+        );
+        cmd
+    } else {
+        let mut cmd = redis::cmd("JSON.SET");
+        cmd.arg(key).arg(".").arg(
+            serde_json::to_string(&value)
+                .with_context(|err| "Unable to serialize value")
+                .ok()?,
+        );
+        cmd
+    };
+    let result: RedisResult<String> = result.query(&mut con);
+
+    match result {
+        Err(err) => {
+            log::error!("Couldn't write to redis, reason: {:?}", err.detail());
+            None
+        }
+        Ok(res) => {
+            let msg = format!("Wrote {} with key {} and result {}", value, key, res);
             log::debug!("{}", msg);
             Some(msg)
         }
@@ -246,7 +284,7 @@ mod tests {
 
     #[test]
     fn test_set() {
-        del("TEST_TABLE", "TEST");
+        hdel("TEST_TABLE", "TEST");
         let result = set("TEST_TABLE", "TEST", "TEST").unwrap();
         assert_eq!(
             result,
@@ -255,14 +293,30 @@ mod tests {
     }
 
     #[test]
-    fn test_del() {
+    fn test_set_json_none() {
+        del("testjson");
+        let result = set_json("testjson", None, "{\"item\":\"pass\"}");
+        del("testjson");
+        assert_ne!(result, None);
+    }
+
+    #[test]
+    fn test_set_json() {
+        del("testjson");
+        let result = set_json("testjson", Some("."), "{\"item\":\"pass\"}");
+        del("testjson");
+        assert_ne!(result, None);
+    }
+
+    #[test]
+    fn test_hdel() {
         let table_count = count("TEST_DEL_TABLE");
         println!("{}", table_count);
         if table_count == 0 {
-            del("TEST_DEL_TABLE", "TEST");
+            hdel("TEST_DEL_TABLE", "TEST");
         }
         set("TEST_DEL_TABLE", "TEST", "TEST").unwrap();
-        del("TEST_DEL_TABLE", "TEST");
+        hdel("TEST_DEL_TABLE", "TEST");
         let table_count = count("TEST_DEL_TABLE");
         assert_eq!(table_count, 0);
     }
@@ -280,7 +334,7 @@ mod tests {
     #[test]
     fn test_get_coordinates() {
         let key = "IMAGINARYPOSTCODE";
-        del(POSTCODE_TABLE_NAME, key);
+        hdel(POSTCODE_TABLE_NAME, key);
         set(POSTCODE_TABLE_NAME, key, "0.0;0.0").unwrap();
         let coordinates = get_coordinates(key).unwrap();
         assert_eq!(coordinates, "\"0.0;0.0\"")
@@ -294,7 +348,7 @@ mod tests {
     #[test]
     fn test_connect_and_query() {
         let result: Result<String, Error> =
-            connect_and_query(|mut connection| connection.set("TEST_HOF", "TEST_HOF")?);
+            connect_and_query(|mut connection| Ok(connection.set("TEST_HOF", "TEST_HOF")?));
         assert!(result.is_ok());
     }
 }

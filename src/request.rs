@@ -1,4 +1,5 @@
 use chrono::Duration;
+use failure::Error;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use vrp_pragmatic::format::problem::Fleet as ProblemFleet;
@@ -10,7 +11,6 @@ use vrp_pragmatic::format::problem::{
 use vrp_pragmatic::format::{problem, Location};
 
 use crate::geocoding;
-use failure::Error;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -177,6 +177,7 @@ pub async fn convert_to_internal_problem(
         config: None,
     })
 }
+
 impl SimpleTrip {
     fn get_simple_profile(&self) -> Profile {
         const FOURTY_MPH_IN_METRES_PER_SECOND: f64 = 17.0;
@@ -189,6 +190,7 @@ impl SimpleTrip {
         }
     }
 }
+
 pub fn build_locations(coordinates: &Vec<String>) -> Vec<Location> {
     let (locations, errors): (Vec<_>, Vec<_>) = coordinates
         .into_iter()
@@ -265,7 +267,9 @@ pub fn build_jobs(locations: &Vec<Location>) -> Vec<ProblemJob> {
 
 #[cfg(test)]
 mod tests {
-    use crate::request::{DetailedRequest, SimpleTrip};
+    use vrp_pragmatic::format::Location;
+
+    use crate::request::{build_jobs, build_vehicles, DetailedRequest, SimpleTrip};
 
     #[test]
     fn test_deserialise_and_convert() {
@@ -280,11 +284,10 @@ mod tests {
 
     #[test]
     fn test_deserialise_and_build_vehicles() {
-        let request = r#"{"coordinate_vehicles": ["BS1 3AA", "BA2 1AA"],"coordinate_jobs": ["BS6 666", "BS7 777"]}"#;
-
-        let obj: SimpleTrip = serde_json::from_str(request).unwrap();
-
-        let vehicles = obj.build_vehicles();
+        let vehicles = build_vehicles(&vec![Location {
+            lat: 51.455691,
+            lng: -2.586119,
+        }]);
 
         assert_eq!(
             vehicles.first().unwrap().vehicle_ids.first().unwrap(),
@@ -340,12 +343,16 @@ mod tests {
 
     #[test]
     fn test_deserialise_and_build_jobs() {
-        let request = r#"{"coordinate_vehicles": ["BS13AA", "BA21AA"],"coordinate_jobs": ["BS11AA", "BA21AA"]}"#;
-
-        let obj: SimpleTrip = serde_json::from_str(request).unwrap();
-
-        let jobs = obj.build_jobs();
-
+        let jobs = build_jobs(&vec![
+            Location {
+                lat: 51.449516,
+                lng: -2.57837,
+            },
+            Location {
+                lat: 51.375932,
+                lng: -2.382291,
+            },
+        ]);
         let service = jobs[0].services.clone().unwrap();
         assert_eq!(jobs[0].id, 0.to_string());
         assert_eq!(service[0].places[0].location.lat, 51.449516);
