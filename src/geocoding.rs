@@ -29,7 +29,7 @@ cached! {
                 let mut reader = crate::geocoding::read_geocoding_csv();
                 let count = redis_manager::count(POSTCODE_TABLE_NAME);
 
-                if count < postcode_csv_size {
+                if count <= postcode_csv_size {
                     log::info!("Bootstrapping postcode cache");
                     redis_manager::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
                     true

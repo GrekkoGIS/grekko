@@ -2,6 +2,7 @@ use std::fs::File;
 
 use csv::{Reader, StringRecord};
 use failure::{Error, ResultExt};
+use redis::geo::Coord;
 use redis::{Client, Cmd, Commands, Connection, RedisError, RedisResult, Value};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
@@ -92,6 +93,7 @@ pub fn get<T: DeserializeOwned>(table: &str, key: &str) -> Result<T, Error> {
 pub fn hdel(table: &str, key: &str) -> Result<String, Error> {
     connect_and_query(|mut connection| Ok(connection.hdel(table, key)?))
 }
+
 pub fn del(key: &str) -> Result<String, Error> {
     connect_and_query(|mut connection| Ok(connection.del(key)?))
 }
@@ -121,6 +123,7 @@ pub fn set<T: Serialize + Display>(table: &str, key: &str, value: T) -> Option<S
         }
     }
 }
+
 pub fn set_json<T: Serialize + Display>(key: &str, path: Option<&str>, value: T) -> Option<String> {
     let client: Client = get_redis_client().expect("Unable to get a redis client");
     let mut con = client.get_connection().expect("Unable to get a connection");
@@ -204,16 +207,21 @@ pub fn bulk_set(csv: &mut Reader<File>, key: &str) -> Option<()> {
     records.for_each(|row| {
         let row = &row.unwrap();
         count += 1;
+        let (lon, lat) = build_row_tuple(lat_index, lon_index, row);
         pipeline
-            .hset(
-                key,
+            .geo_add(
                 build_row_field(postcode_index, row),
-                build_row_value(lat_index, lon_index, row),
+                (Coord::lon_lat(lon, lat), "UK"),
             )
+            // .hset(
+            //     key,
+            //     build_row_field(postcode_index, row),
+            //     build_row_value(lat_index, lon_index, row),
+            // )
             .ignore();
     });
 
-    let result: RedisResult<()> = pipeline.query(&mut con);
+    let result: RedisResult<i32> = pipeline.query(&mut con);
 
     match result {
         Ok(res) => {
@@ -238,6 +246,11 @@ fn build_row_value(lat_index: usize, lon_index: usize, row: &StringRecord) -> St
         row.get(lat_index).unwrap(),
         row.get(lon_index).unwrap()
     )
+}
+
+// TODO [#47]: move these away
+fn build_row_tuple(lat_index: usize, lon_index: usize, row: &StringRecord) -> (&str, &str) {
+    (row.get(lon_index).unwrap(), row.get(lat_index).unwrap())
 }
 
 fn build_row_field(postcode_index: usize, row: &StringRecord) -> String {
