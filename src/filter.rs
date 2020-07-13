@@ -43,8 +43,8 @@ pub async fn set_user_from_token(token: String, user_request: User) -> Result<Js
 }
 
 pub async fn search_coordinates(
-    token: String,
     postcode: String,
+    token: String,
 ) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
     match_result_err(user)?;

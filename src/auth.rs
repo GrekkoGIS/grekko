@@ -13,13 +13,14 @@ pub struct Claims {
 pub(crate) async fn decode_token_unsafe(
     token: String,
 ) -> Result<TokenData<Claims>, failure::Error> {
+    log::debug!("Decoding token {}", token);
     let token_index = 1;
     let token: Vec<&str> = token.split("Bearer ").collect();
+    log::debug!("Looking through token vector {:?   }", token);
     let token = token
         .get(token_index)
         .ok_or_else(|| failure::err_msg("Failed to get the token index"))?;
 
-    log::trace!("Decoding token `{}`", token);
     Ok(jsonwebtoken::dangerous_insecure_decode(&token)?)
 }
 
