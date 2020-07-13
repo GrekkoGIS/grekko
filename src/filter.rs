@@ -32,9 +32,6 @@ pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Reje
 }
 
 pub async fn set_user_from_token(token: String, user_request: User) -> Result<Json, Rejection> {
-    let user = get_user(token).await;
-    match_result_err(user)?;
-
     let result = set_user(user_request).await;
     match result {
         Some(value) => Ok(warp::reply::json(&value)),

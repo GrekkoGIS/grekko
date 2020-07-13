@@ -27,7 +27,7 @@ where
 
 // TODO [#30]: add concurrency to all of this once benchmarked
 fn get_redis_client() -> RedisResult<Client> {
-    redis::Client::open("redis://127.0.0.1/")
+    redis::Client::open("redis://127.0.0.1:6375/")
 }
 
 pub fn get_coordinates(postcode: &str) -> Result<String, Error> {
