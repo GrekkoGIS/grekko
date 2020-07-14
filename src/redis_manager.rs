@@ -9,6 +9,7 @@ use serde::export::fmt::Display;
 use serde::Serialize;
 
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
+use rayon::iter::{ParallelBridge, ParallelIterator};
 use vrp_pragmatic::format::Location;
 
 fn connect_and_query<F, T>(mut action: F) -> Result<T, Error>
@@ -261,12 +262,32 @@ pub fn bulk_set(csv: &mut Reader<File>, key: &str) -> Option<()> {
     let mut count = 0;
     let mut pipeline = redis::pipe();
 
-    // TODO [#32]: use rayon to parallelise this
+    // let s = records
+    //     .par_bridge()
+    //     .fold(
+    //         || redis::pipe(),
+    //         |mut pipeline, row| {
+    //             let row = &row.unwrap();
+    //             count += 1;
+    //             let (lon, lat) = build_row_tuple(lat_index, lon_index, row);
+    //             if lat != "99.999999" && lon != "0.000000" {
+    //                 pipeline
+    //                     .geo_add(
+    //                         build_row_field(postcode_index, row),
+    //                         (Coord::lon_lat(lon, lat), "UK"),
+    //                     )
+    //                     .ignore();
+    //             }
+    //             pipeline
+    //         },
+    //     )
+    //     .collect();
+    // TODO [#32]: use  rayon to parallelise this
     records.for_each(|row| {
         let row = &row.unwrap();
         count += 1;
         let (lon, lat) = build_row_tuple(lat_index, lon_index, row);
-        if lon != "99.999999" && lat != "0.000000" {
+        if lat != "99.999999" && lon != "0.000000" {
             pipeline
                 .geo_add(
                     build_row_field(postcode_index, row),
@@ -276,7 +297,7 @@ pub fn bulk_set(csv: &mut Reader<File>, key: &str) -> Option<()> {
         }
     });
 
-    let result: RedisResult<_> = pipeline.query(&mut con);
+    let result: RedisResult<Vec<i32>> = pipeline.query(&mut con);
 
     match result {
         Ok(res) => {
