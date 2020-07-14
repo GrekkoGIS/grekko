@@ -1,0 +1,13 @@
+---
+
+concurrency: 30
+base: 'http://localhost:3030'
+iterations: 5000
+rampup: 2
+
+plan:
+  - name: Fetch users
+    request:
+      url: /user
+      headers:
+        Authorization: Bearer eyJraWQiOiJLTzNnRzJxODBxR1QyYXF2aTRTWmRuUGxuU2plMHV2RVJiODNnR0wzbFBjIiwiYWxnIjoiUlMyNTYifQ.eyJ2ZXIiOjEsImp0aSI6IkFULldLRFpaS3ZEM1ZWRzVNb2VLYm9Ec2ZOY3ItZlR4Q09tVHBpZmE5LTlYd1EiLCJpc3MiOiJodHRwczovL2Rldi0yMDE0NjAub2t0YS5jb20vb2F1dGgyL2RlZmF1bHQiLCJhdWQiOiJhcGk6Ly9kZWZhdWx0IiwiaWF0IjoxNTk0NjUxNDE1LCJleHAiOjE1OTQ2NTUwMTUsImNpZCI6IjBvYWhwNGd1bW1VOUE0VWtqNHg2IiwidWlkIjoiMDB1Z3BhYmppTUNRc0d3RkQ0eDYiLCJzY3AiOlsicHJvZmlsZSIsImVtYWlsIiwib3BlbmlkIl0sInN1YiI6ImF3ZXNvbWVhbHBpbmVpYmV4QGdtYWlsLmNvbSJ9.F2_LXWFVIStqGmDSqEz36F1TsDeXdfkO9nEzOUZ9IeRc9wi8v7-U9HwP9BEsFWyu6N_bRX8SjpjwfefXlq6PSE-v2xfE3GUq0YgmET-shlKjcJBE5A3eWFqJgPhaeR5MI-QlLkkWSZEmHeuxHhzGTJK3YEbI75UADXEh5rxpuyqCpEpzq1o3EjXhOrDTMmM_2Mqgqu4Jm5kWRB-C8PPPJtxvYjrxJWp4VQ-CVACelGyRd7hnqyP_kYEeJPwzGLXRK_NZe7oMYN7qBM88lDCWd9jKi8PLewqRbVwlT_1Vw0wWm9WhiclJORj70hQ-nJJP65i_Vqamd9-KZrhNH5YzrQ
