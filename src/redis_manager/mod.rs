@@ -394,7 +394,7 @@ mod tests {
 }
 
 impl RedisCacheManager {
-    fn build_serialise_err(err: &std::error::Error) -> String {
+    fn build_serialise_err(err: &dyn std::error::Error) -> String {
         format!("Unable to serialize value err `{}`", err)
     }
 }

@@ -1,15 +1,9 @@
 use failure::{Error, ResultExt};
-use serde::export::fmt;
-use serde::{Deserialize, Serialize};
 use vrp_pragmatic::format::solution::Solution;
-use warp::reply::{Json, Response};
-use warp::{reject, Rejection, Reply};
 
 pub mod structs;
 
 use crate::auth;
-use crate::redis_manager;
-use crate::redis_manager::cache_manager::CacheManager;
 use crate::redis_manager::get_manager;
 use crate::redis_manager::json_cache_manager::JsonCacheManager;
 use crate::user::structs::User;

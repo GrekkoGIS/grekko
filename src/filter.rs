@@ -4,13 +4,12 @@ use std::sync::Arc;
 
 use failure::Error;
 use serde::{Deserialize, Serialize};
-use tokio::stream::StreamExt;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::Location;
 use warp::http::Method;
 use warp::reply::Json;
-use warp::{reject, Filter, Rejection};
+use warp::{reject, Rejection};
 
 use crate::geocoding::{forward_search, get_location_from_postcode, reverse_search};
 use crate::request::{build_locations, convert_to_internal_problem, SimpleTrip};
@@ -110,9 +109,9 @@ where
     T: Serialize,
     R: Serialize,
 {
-    if let Some(value) = real_value {
+    if let Some(_) = real_value {
         match outer {
-            Some(value) => Ok(warp::reply::json(&real_value)),
+            Some(_) => Ok(warp::reply::json(&real_value)),
             None => Err(reject::reject()),
         }
     } else {

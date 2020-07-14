@@ -1,12 +1,9 @@
-use failure::{Error, ResultExt};
 use serde::export::fmt;
 use serde::{Deserialize, Serialize};
 use vrp_pragmatic::format::solution::Solution;
 use warp::reply::{Json, Response};
-use warp::{reject, Rejection, Reply};
+use warp::{reject, Rejection};
 
-use crate::auth;
-use crate::redis_manager;
 use crate::user::get_user_details;
 
 #[derive(Serialize, Deserialize, Clone)]

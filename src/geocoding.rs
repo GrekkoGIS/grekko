@@ -32,7 +32,7 @@ cached! {
                 // I don't want to read these again to UTF so using a known const
 
                 // TODO: swap this with a boolean
-                let bootstrapped: Result<String, Error> = get_manager().hget(&get_manager().client, "BOOTSTRAP", "BOOTSTRAPPED");
+                let bootstrapped: Result<(), Error> = get_manager().hget(&get_manager().client, "BOOTSTRAP", "BOOTSTRAPPED");
 
                 if bootstrapped.is_err() {
                     log::info!("Bootstrapping postcode cache");
