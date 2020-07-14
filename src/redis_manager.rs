@@ -201,11 +201,11 @@ pub fn append_json<T: Serialize>(key: &str, path: &str, value: T) -> Option<Stri
         cmd.arg(key).arg(path).arg(&value_as_json);
         cmd
     };
-    let result: RedisResult<String> = result.query(&mut con);
+    let result: RedisResult<i32> = result.query(&mut con);
 
     match result {
         Err(err) => {
-            log::error!("Couldn't write to redis, reason: {:?}", err.detail());
+            log::error!("Couldn't write json to redis, reason: {:?}", err.detail());
             None
         }
         Ok(res) => {

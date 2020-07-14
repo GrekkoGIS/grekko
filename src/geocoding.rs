@@ -34,7 +34,7 @@ cached! {
 
                 if count < postcode_csv_size {
                     log::info!("Bootstrapping postcode cache");
-                    redis_manager::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
+                    // redis_manager::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
                     true
                 } else {
                     log::info!("Postcode cache was already bootstrapped");
