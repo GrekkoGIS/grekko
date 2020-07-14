@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use csv::{Reader, StringRecord};
+use csv::{Reader};
 use failure::{Error, ResultExt};
 use redis::geo::Coord;
 use redis::{Client, Cmd, Commands, Connection, RedisError, RedisResult, Value};
@@ -11,9 +11,9 @@ use serde::Serialize;
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 use crate::redis_manager::cache_manager::CacheManager;
 use crate::redis_manager::json_cache_manager::JsonCacheManager;
-use rayon::iter::{ParallelBridge, ParallelIterator};
+use rayon::iter::{ParallelIterator};
 use std::sync::Arc;
-use vrp_pragmatic::format::Location;
+
 
 mod builder;
 pub(crate) mod cache_manager;
@@ -195,7 +195,7 @@ pub fn get_coordinates(postcode: &str) -> Result<String, Error> {
     get_manager().connect_and_query(&get_manager().client, |mut connection| {
         Ok(connection
             .hget(POSTCODE_TABLE_NAME, postcode)
-            .with_context(|err| {
+            .with_context(|_err| {
                 format!(
                     "Failed to get `{}` from `{}`",
                     postcode, POSTCODE_TABLE_NAME

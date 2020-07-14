@@ -1,5 +1,5 @@
 use failure::Error;
-use osrm::{Coordinate, Osrm, TableResponse};
+use osrm::{Coordinate, Osrm};
 use vrp_pragmatic::format::problem::Matrix;
 
 pub fn get_matrix(coords: Vec<Vec<f32>>) -> Result<Matrix, Error> {

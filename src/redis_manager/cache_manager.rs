@@ -1,4 +1,4 @@
-use csv::{Reader, StringRecord};
+
 use failure::{Error, ResultExt};
 use redis::{Client, Commands, Connection, RedisResult};
 use serde::de::DeserializeOwned;

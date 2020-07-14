@@ -1,23 +1,23 @@
 use std::convert::Infallible;
-use std::net::SocketAddr;
+
 use std::sync::Arc;
 
 use failure::Error;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::Location;
-use warp::http::Method;
+
 use warp::reply::Json;
 use warp::{reject, Rejection};
 
-use crate::geocoding::{forward_search, get_location_from_postcode, reverse_search};
+use crate::geocoding::{forward_search, get_location_from_postcode};
 use crate::request::{build_locations, convert_to_internal_problem, SimpleTrip};
-use crate::user::{append_user_route, get_id_from_token, get_user, set_user, structs::User};
-use crate::{geocoding, osrm_service, request, solver};
-use log::kv::Source;
-use serde::de::DeserializeOwned;
-use std::collections::HashMap;
+use crate::user::{append_user_route, get_user, set_user, structs::User};
+use crate::{osrm_service, request, solver};
+
+
+
 
 pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
@@ -30,7 +30,7 @@ pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Reje
         })
 }
 
-pub async fn set_user_from_token(token: String, user_request: User) -> Result<Json, Rejection> {
+pub async fn set_user_from_token(_token: String, user_request: User) -> Result<Json, Rejection> {
     let result = set_user(user_request).await;
     match result {
         Some(value) => Ok(warp::reply::json(&value)),

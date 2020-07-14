@@ -1,7 +1,7 @@
-use alcoholic_jwt::{token_kid, validate, ValidJWT, Validation, JWKS};
-use failure::ResultExt;
+
+
 use jsonwebtoken::TokenData;
-use log::debug;
+
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]

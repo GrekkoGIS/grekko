@@ -1,8 +1,8 @@
 use std::fs::File;
 
 use csv::{ByteRecord, Reader};
-use failure::_core::convert::Infallible;
-use failure::{Error, ResultExt};
+
+use failure::{Error};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
 
