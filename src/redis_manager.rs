@@ -33,6 +33,7 @@ fn get_redis_client() -> RedisResult<Client> {
 }
 
 pub fn get_geo_pos(key: &str) -> Result<(f64, f64), Error> {
+    log::trace!("key {}", key);
     let result: Result<Vec<Vec<f64>>, Error> = connect_and_query(|mut connection| {
         Ok(connection.geo_pos(key, &["UK"]).with_context(|err| {
             format!("Failed to get `{}` from `UK` err `{}`", key, err.category())

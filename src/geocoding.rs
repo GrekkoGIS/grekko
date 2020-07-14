@@ -51,10 +51,11 @@ cached! {
 
 pub fn get_location_from_postcode(query: &String) -> Result<Location, Error> {
     let get_from_geo_command = true;
+    let key_sanitized = build_cache_key(query.clone());
     let (lng, lat) = if get_from_geo_command {
-        get_location_from_geo_ops(query)?
+        get_location_from_geo_ops(&key_sanitized)?
     } else {
-        get_location_from_table(query)?
+        get_location_from_table(&key_sanitized)?
     };
     Ok(map_to_location(lng, lat))
 }
