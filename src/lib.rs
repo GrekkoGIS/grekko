@@ -27,7 +27,7 @@ pub mod user;
 
 pub async fn start_server(address: SocketAddr) {
     tokio::task::spawn(async {
-        geocoding::get_postcodes();
+        geocoding::is_bootstrapped();
     });
 
     const AUTH_HEADER: &str = "authorization";

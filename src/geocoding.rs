@@ -1,12 +1,12 @@
 use std::fs::File;
 
 use csv::{ByteRecord, Reader};
+use failure::_core::convert::Infallible;
+use failure::{Error, ResultExt};
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
 
 use crate::redis_manager;
-use failure::_core::convert::Infallible;
-use failure::{Error, ResultExt};
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -19,6 +19,9 @@ pub enum GeocodingKind {
     COORDINATES(Vec<f64>),
 }
 
+pub const POSTCODE_TABLE_NAME: &str = "POSTCODE";
+pub const COORDINATES_SEPARATOR: &str = ";";
+
 cached! {
     POSTCODES;
     fn bootstrap_cache(table: String) -> bool = {
@@ -29,9 +32,9 @@ cached! {
                 let mut reader = crate::geocoding::read_geocoding_csv();
                 let count = redis_manager::count(POSTCODE_TABLE_NAME);
 
-                if count <= postcode_csv_size {
+                if count < postcode_csv_size {
                     log::info!("Bootstrapping postcode cache");
-                    redis_manager::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
+                    // redis_manager::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
                     true
                 } else {
                     log::info!("Postcode cache was already bootstrapped");
@@ -46,44 +49,48 @@ cached! {
     }
 }
 
-pub const POSTCODE_TABLE_NAME: &str = "POSTCODE";
-pub const COORDINATES_SEPARATOR: &str = ";";
+pub fn get_location_from_postcode(query: &String) -> Result<Location, Error> {
+    let get_from_geo_command = true;
+    let (lng, lat) = if get_from_geo_command {
+        get_location_from_geo_ops(query)?
+    } else {
+        get_location_from_table(query)?
+    };
+    Ok(map_to_location(lng, lat))
+}
+fn get_location_from_table(query: &String) -> Result<(f64, f64), Error> {
+    let coordinates: String = reverse_search(query.clone())?;
+    let coordinates: Vec<&str> = coordinates.split(';').collect();
+    Ok((coordinates[0].parse()?, coordinates[1].parse()?))
+}
+fn get_location_from_geo_ops(query: &String) -> Result<(f64, f64), Error> {
+    Ok(redis_manager::get_geo_pos(query)?)
+}
+fn map_to_location(lng: f64, lat: f64) -> Location {
+    Location { lng, lat }
+}
 
-// TODO this function is being hit twice
-pub fn lookup_coordinates(query: &String) -> Result<Location, Error> {
-    let coordinates: String = reverse_search(query.clone());
+// TODO: lots of copies here
+pub fn reverse_search(query: String) -> Result<String, Error> {
+    let coordinate_string = if is_bootstrapped() {
+        reverse_search_cache_table(query.clone())
+    } else {
+        reverse_search_file(query.clone())
+    }?;
+    Ok(check_coordinate_string(query, coordinate_string)?)
+}
+
+fn check_coordinate_string(query: String, coordinates: String) -> Result<String, Error> {
     if coordinates == String::from("99.999999;0.000000") {
         let msg = format!("Location is invalid for: {:?}", query);
         log::error!("{}", msg);
         return Err(failure::err_msg(msg));
-    }
-    let coordinates: Vec<&str> = coordinates.split(';').collect();
-    let location = Location {
-        lat: coordinates[0].parse()?,
-        lng: coordinates[1].parse()?,
-    };
-    Ok(location)
-}
-
-pub fn get_postcodes() -> bool {
-    bootstrap_cache(POSTCODE_TABLE_NAME.to_string())
-}
-
-pub fn reverse_search(query: String) -> String {
-    if get_postcodes() {
-        match reverse_search_cache(query.clone()) {
-            Ok(value) => value,
-            Err(err) => {
-                log::error!("Failed to find a query for {}", query);
-                String::from("EMPTY")
-            } //TODO this is a poop error message
-        }
     } else {
-        reverse_search_file(query)
+        Ok(coordinates)
     }
 }
 
-pub fn reverse_search_cache(query: String) -> Result<String, Error> {
+pub fn reverse_search_cache_table(query: String) -> Result<String, Error> {
     let postcode = build_cache_key(query);
     let postcode = postcode.as_str();
     redis_manager::get_coordinates(postcode).map_err(|err| {
@@ -91,55 +98,45 @@ pub fn reverse_search_cache(query: String) -> Result<String, Error> {
         err
     })
 }
-
-fn build_cache_key(query: String) -> String {
-    // TODO [#39]: sort this out, rust doesn't like fluent that much
-    let postcode = query;
-    let postcode = postcode.replace(" ", "");
-    let postcode = postcode.replace("-", "");
-    let postcode = postcode.replace(",", "");
-    postcode.replace(COORDINATES_SEPARATOR, "")
-}
-
-pub fn reverse_search_file(query: String) -> String {
+pub fn reverse_search_file(query: String) -> Result<String, Error> {
     let lat_index = 1;
     let lon_index = 2;
-    let res: ByteRecord = read_geocoding_csv()
+    let res = read_geocoding_csv()
         .byte_records()
         .find(|record| {
             record
                 .as_ref()
-                .expect("Couldn't serialise record to a byte record")
+                .expect("Couldn't serialise record to a byte record") // TODO: remove
                 .iter()
                 .any(|field| field == query.replace(" ", "").replace("-", " ").as_bytes())
         })
-        .unwrap_or_else(|| panic!("Unable to find coordinates for {}", query)) // TODO: dont panic ever
-        .expect("Find result could not be unwrapped!");
+        .ok_or(failure::err_msg(format!(
+            "Unable to find coordinates for {}",
+            query
+        )))?;
 
-    format!(
+    let record = res?;
+    Ok(format!(
         "{};{}",
-        std::str::from_utf8(res.get(lat_index).unwrap().to_owned().as_ref())
-            .expect("Unable to unwrap latitude"),
-        std::str::from_utf8(res.get(lon_index).unwrap().to_owned().as_ref())
-            .expect("Unable to unwrap longitude")
-    )
+        std::str::from_utf8(record.get(lat_index).unwrap().to_owned().as_ref())?,
+        // .expect("Unable to unwrap latitude"),
+        std::str::from_utf8(record.get(lon_index).unwrap().to_owned().as_ref())? // .expect("Unable to unwrap longitude")
+    ))
 }
 
 pub fn forward_search(lat_long: Vec<f64>) -> String {
-    if get_postcodes() {
-        forward_search_cache(lat_long)
+    if is_bootstrapped() {
+        forward_search_cache_table(lat_long)
     } else {
         forward_search_file(lat_long)
     }
 }
-
-pub fn forward_search_cache(lat_long: Vec<f64>) -> String {
+pub fn forward_search_cache_table(lat_long: Vec<f64>) -> String {
     match redis_manager::get_postcode(lat_long) {
         Err(err) => String::from("Postcode couldn't be found"),
         Ok(value) => value,
     }
 }
-
 pub fn forward_search_file(lat_lon: Vec<f64>) -> String {
     let postcode_index = 0;
     let res: ByteRecord = read_geocoding_csv()
@@ -157,6 +154,18 @@ pub fn forward_search_file(lat_lon: Vec<f64>) -> String {
         .expect("Unable to unwrap postcode")
 }
 
+pub fn is_bootstrapped() -> bool {
+    bootstrap_cache(POSTCODE_TABLE_NAME.to_string())
+}
+fn build_cache_key(query: String) -> String {
+    // TODO [#39]: sort this out, rust doesn't like fluent that much
+    let postcode = query;
+    let postcode = postcode.replace(" ", "");
+    let postcode = postcode.replace("-", "");
+    let postcode = postcode.replace(",", "");
+    postcode.replace(COORDINATES_SEPARATOR, "")
+}
+
 pub fn read_geocoding_csv() -> Reader<File> {
     csv::Reader::from_path("postcodes.csv").expect("Issue reading postcodes.csv")
 }
@@ -164,7 +173,7 @@ pub fn read_geocoding_csv() -> Reader<File> {
 #[cfg(test)]
 mod tests {
     use crate::geocoding::{
-        build_cache_key, forward_search_file, get_postcodes, reverse_search_file,
+        build_cache_key, forward_search_file, is_bootstrapped, reverse_search_file,
         COORDINATES_SEPARATOR,
     };
 
@@ -183,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_bootstrap_postcode_cache() {
-        assert_eq!(get_postcodes(), true);
+        assert_eq!(is_bootstrapped(), true);
     }
 
     #[test]

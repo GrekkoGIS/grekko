@@ -12,7 +12,7 @@ use warp::http::Method;
 use warp::reply::Json;
 use warp::{reject, Filter, Rejection};
 
-use crate::geocoding::{forward_search, reverse_search};
+use crate::geocoding::{forward_search, get_location_from_postcode, reverse_search};
 use crate::request::{build_locations, convert_to_internal_problem, SimpleTrip};
 use crate::user::{get_id_from_token, get_user, set_user, User};
 use crate::{geocoding, osrm_service, request, solver};
@@ -23,7 +23,7 @@ use std::collections::HashMap;
 pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
 
-    match_result_err(user)
+    extract_warp_err(user)
         .map(|user| warp::reply::json(&user))
         .map_err(|err| {
             log::error!("Error getting user: `{:?}`", err);
@@ -44,10 +44,11 @@ pub async fn search_coordinates(
     token: String,
 ) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
-    match_result_err(user)?;
+    extract_warp_err(user)?;
 
-    let result = reverse_search(postcode);
-    Ok(result)
+    let result = get_location_from_postcode(&postcode);
+    let result = extract_warp_err(result)?;
+    Ok(warp::reply::json(&result))
 }
 
 pub async fn search_postcode(
@@ -56,7 +57,7 @@ pub async fn search_postcode(
     token: String,
 ) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
-    match_result_err(user)?;
+    extract_warp_err(user)?;
 
     let result = forward_search(vec![lat, lon]);
     Ok(result)
@@ -67,7 +68,7 @@ pub async fn simple_trip(
     trip: request::SimpleTrip,
 ) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
-    let user = match_result_err(user)?;
+    let user = extract_warp_err(user)?;
 
     // TODO [#29]: add some concurrency here
     // Convert simple trip to internal problem TODO we do this twice?
@@ -75,7 +76,7 @@ pub async fn simple_trip(
     let job_locations = build_locations(&trip.coordinate_jobs);
 
     let problem = convert_to_internal_problem(&trip, &vehicle_locations, &job_locations).await;
-    let problem = match_result_err(problem)?;
+    let problem = extract_warp_err(problem)?;
     let problem_clone = problem.clone();
 
     // Convert internal problem to a core problem
@@ -121,7 +122,7 @@ where
     }
 }
 
-fn match_result_err<T>(value: Result<T, Error>) -> Result<T, Rejection> {
+fn extract_warp_err<T>(value: Result<T, Error>) -> Result<T, Rejection> {
     match value {
         Ok(value) => Ok(value),
         Err(err) => {
@@ -135,10 +136,10 @@ pub async fn simple_trip_matrix(
     token: String,
     trip: request::SimpleTrip,
 ) -> Result<impl warp::Reply, Rejection> {
-    let user = match_result_err(get_user(token).await)?;
+    let user = extract_warp_err(get_user(token).await)?;
 
     let context = calculate_trip(&trip).await;
-    let context = match_result_err(context)?;
+    let context = extract_warp_err(context)?;
 
     let user = user.add_route(context.solution.clone());
     let route_set_result = set_user(user).await;

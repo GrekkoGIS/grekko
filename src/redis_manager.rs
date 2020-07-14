@@ -9,6 +9,7 @@ use serde::export::fmt::Display;
 use serde::Serialize;
 
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
+use vrp_pragmatic::format::Location;
 
 fn connect_and_query<F, T>(mut action: F) -> Result<T, Error>
 where
@@ -29,6 +30,30 @@ where
 // TODO [#30]: add concurrency to all of this once benchmarked
 fn get_redis_client() -> RedisResult<Client> {
     redis::Client::open("redis://127.0.0.1:6375/")
+}
+
+pub fn get_geo_pos(key: &str) -> Result<(f64, f64), Error> {
+    let result: Result<Vec<Vec<f64>>, Error> = connect_and_query(|mut connection| {
+        Ok(connection.geo_pos(key, &["UK"]).with_context(|err| {
+            format!("Failed to get `{}` from `UK` err `{}`", key, err.category())
+        })?)
+    });
+    log::trace!(
+        "Result received from query: `{:?}` from `UK` and key `{}`",
+        result,
+        key
+    );
+
+    // let (lng, lat) = result?[0];
+    match result {
+        Err(err) => Err(err.into()),
+        Ok(coord_list) => {
+            let coords = coord_list[0].clone(); //PANIC here! TODO fix
+            let lng = coords[0];
+            let lat = coords[1];
+            Ok((lng, lat))
+        }
+    }
 }
 
 pub fn get_coordinates(postcode: &str) -> Result<String, Error> {
@@ -208,17 +233,14 @@ pub fn bulk_set(csv: &mut Reader<File>, key: &str) -> Option<()> {
         let row = &row.unwrap();
         count += 1;
         let (lon, lat) = build_row_tuple(lat_index, lon_index, row);
-        pipeline
-            .geo_add(
-                build_row_field(postcode_index, row),
-                (Coord::lon_lat(lon, lat), "UK"),
-            )
-            // .hset(
-            //     key,
-            //     build_row_field(postcode_index, row),
-            //     build_row_value(lat_index, lon_index, row),
-            // )
-            .ignore();
+        if lon != "99.999999" && lat != "0.000000" {
+            pipeline
+                .geo_add(
+                    build_row_field(postcode_index, row),
+                    (Coord::lon_lat(lon, lat), "UK"),
+                )
+                .ignore();
+        }
     });
 
     let result: RedisResult<i32> = pipeline.query(&mut con);

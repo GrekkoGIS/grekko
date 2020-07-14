@@ -194,7 +194,7 @@ impl SimpleTrip {
 pub fn build_locations(coordinates: &Vec<String>) -> Vec<Location> {
     let (locations, errors): (Vec<_>, Vec<_>) = coordinates
         .into_iter()
-        .map(|location| geocoding::lookup_coordinates(location))
+        .map(|location| geocoding::get_location_from_postcode(location))
         .partition(Result::is_ok);
     let locations: Vec<Location> = locations.into_iter().map(Result::unwrap).collect();
     let errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
