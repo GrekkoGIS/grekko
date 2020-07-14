@@ -45,7 +45,7 @@ pub async fn start_server(address: SocketAddr) {
         .and(warp::header::<String>(AUTH_HEADER))
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 2))
-        .and(warp::body::json::<user::User>())
+        .and(warp::body::json::<user::structs::User>())
         .and_then(filter::set_user_from_token);
 
     // TODO [#18]: potentially move path parameterized geocoding to query

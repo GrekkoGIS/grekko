@@ -7,10 +7,11 @@ use warp::{reject, Rejection, Reply};
 
 use crate::auth;
 use crate::redis_manager;
+use crate::user::get_user_details;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct User {
-    uid: String,
+    pub(crate) uid: String,
     forward_geocoding: Vec<String>,
     reverse_geocoding: Vec<Vec<f64>>,
     routes: Vec<Solution>,
@@ -65,46 +66,4 @@ impl UserFail {
             message: format!("Unable to find a user with id `{}`", id),
         }
     }
-}
-
-pub async fn get_user(token: String) -> Result<User, Error> {
-    let uid = get_id_from_token(token)
-        .await
-        .with_context(|err| format!("Failed to get uid from token err `{}`", err))?;
-    log::trace!("User `{}` decoded from token", uid);
-
-    get_user_details(uid).await
-}
-
-pub async fn get_user_details(uid: String) -> Result<User, Error> {
-    let user = redis_manager::get_json(uid.as_str(), None).with_context(|err| {
-        format!(
-            "Failed to get user `{}` from table USERS err `{}`",
-            uid, err
-        )
-    })?;
-    Ok(user)
-}
-
-pub async fn set_user(user: User) -> Option<String> {
-    redis_manager::set_json(&user.uid, None, user.clone());
-    redis_manager::set::<User>("USERS", &user.uid, user.clone())
-}
-
-pub async fn append_user_route(user: User, route: &Solution) -> Option<String> {
-    redis_manager::append_json(&user.uid, ".routes", &route)
-}
-
-pub async fn get_id_from_token(token: String) -> Result<String, Error> {
-    let valid_jwt = auth::decode_token_unsafe(token.clone())
-        .await
-        .with_context(|err| format!("Failed to decode token err: `{}`", err))?;
-    log::trace!("TokenData `{:?}` decoded", valid_jwt);
-    Ok(valid_jwt.claims.uid)
-}
-
-#[cfg(test)]
-mod tests {
-    #[tokio::test]
-    async fn test_get_user_claims() {}
 }

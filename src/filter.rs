@@ -14,7 +14,7 @@ use warp::{reject, Filter, Rejection};
 
 use crate::geocoding::{forward_search, get_location_from_postcode, reverse_search};
 use crate::request::{build_locations, convert_to_internal_problem, SimpleTrip};
-use crate::user::{append_user_route, get_id_from_token, get_user, set_user, User};
+use crate::user::{append_user_route, get_id_from_token, get_user, set_user, structs::User};
 use crate::{geocoding, osrm_service, request, solver};
 use log::kv::Source;
 use serde::de::DeserializeOwned;
