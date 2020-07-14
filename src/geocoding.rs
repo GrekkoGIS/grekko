@@ -51,7 +51,7 @@ cached! {
 
 pub fn get_location_from_postcode(query: &String) -> Result<Location, Error> {
     let get_from_geo_command = true;
-    let key_sanitized = build_cache_key(query.clone());
+    let key_sanitized = build_cache_key(&query);
     let (lng, lat) = if get_from_geo_command {
         get_location_from_geo_ops(&key_sanitized)?
     } else {
@@ -60,28 +60,27 @@ pub fn get_location_from_postcode(query: &String) -> Result<Location, Error> {
     Ok(map_to_location(lng, lat))
 }
 fn get_location_from_table(query: &String) -> Result<(f64, f64), Error> {
-    let coordinates: String = reverse_search(query.clone())?;
+    let coordinates: String = reverse_search(&query)?;
     let coordinates: Vec<&str> = coordinates.split(';').collect();
     Ok((coordinates[0].parse()?, coordinates[1].parse()?))
 }
-fn get_location_from_geo_ops(query: &String) -> Result<(f64, f64), Error> {
+fn get_location_from_geo_ops(query: &str) -> Result<(f64, f64), Error> {
     Ok(redis_manager::get_geo_pos(query)?)
 }
 fn map_to_location(lng: f64, lat: f64) -> Location {
     Location { lng, lat }
 }
 
-// TODO: lots of copies here
-pub fn reverse_search(query: String) -> Result<String, Error> {
+pub fn reverse_search(query: &str) -> Result<String, Error> {
     let coordinate_string = if is_bootstrapped() {
-        reverse_search_cache_table(query.clone())
+        reverse_search_cache_table(&query)
     } else {
-        reverse_search_file(query.clone())
+        reverse_search_file(&query)
     }?;
-    Ok(check_coordinate_string(query, coordinate_string)?)
+    Ok(check_coordinate_string(&query, coordinate_string)?)
 }
 
-fn check_coordinate_string(query: String, coordinates: String) -> Result<String, Error> {
+fn check_coordinate_string(query: &str, coordinates: String) -> Result<String, Error> {
     if coordinates == String::from("99.999999;0.000000") {
         let msg = format!("Location is invalid for: {:?}", query);
         log::error!("{}", msg);
@@ -91,15 +90,13 @@ fn check_coordinate_string(query: String, coordinates: String) -> Result<String,
     }
 }
 
-pub fn reverse_search_cache_table(query: String) -> Result<String, Error> {
-    let postcode = build_cache_key(query);
-    let postcode = postcode.as_str();
+pub fn reverse_search_cache_table(postcode: &str) -> Result<String, Error> {
     redis_manager::get_coordinates(postcode).map_err(|err| {
         log::error!("Failed to get coordinates for {}", err);
         err
     })
 }
-pub fn reverse_search_file(query: String) -> Result<String, Error> {
+pub fn reverse_search_file(query: &str) -> Result<String, Error> {
     let lat_index = 1;
     let lon_index = 2;
     let res = read_geocoding_csv()
@@ -158,7 +155,7 @@ pub fn forward_search_file(lat_lon: Vec<f64>) -> String {
 pub fn is_bootstrapped() -> bool {
     bootstrap_cache(POSTCODE_TABLE_NAME.to_string())
 }
-fn build_cache_key(query: String) -> String {
+fn build_cache_key(query: &String) -> String {
     // TODO [#39]: sort this out, rust doesn't like fluent that much
     let postcode = query;
     let postcode = postcode.replace(" ", "");
@@ -187,7 +184,7 @@ mod tests {
 
     #[test]
     fn test_search_coordinates() {
-        let coordinates = reverse_search_file(String::from("AB1-0AJ"));
+        let coordinates = reverse_search_file(&String::from("AB1-0AJ"));
         assert_eq!(coordinates, "57.099011;-2.252854")
     }
 
@@ -199,7 +196,7 @@ mod tests {
     #[test]
     fn test_build_cache_key() {
         let key = "IMAGINARY; -,POSTCODE";
-        let key = build_cache_key(String::from(key));
+        let key = build_cache_key(&String::from(key));
         assert!(!key.contains(' '));
         assert!(!key.contains('-'));
         assert!(!key.contains(','));
