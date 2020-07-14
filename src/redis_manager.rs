@@ -49,7 +49,10 @@ pub fn get_geo_pos(key: &str) -> Result<(f64, f64), Error> {
     match result {
         Err(err) => Err(err.into()),
         Ok(coord_list) => {
-            let coords = coord_list[0].clone(); //PANIC here! TODO fix
+            let coords = coord_list.get(0).ok_or(failure::err_msg(format!(
+                "Could not get coordinates from {:?}",
+                coord_list
+            )))?;
             let lng = coords[0];
             let lat = coords[1];
             Ok((lng, lat))
@@ -185,6 +188,35 @@ pub fn set_json<T: Serialize + Display>(key: &str, path: Option<&str>, value: T)
         }
     }
 }
+pub fn append_json<T: Serialize>(key: &str, path: &str, value: T) -> Option<String> {
+    let client: Client = get_redis_client().expect("Unable to get a redis client");
+    let mut con = client.get_connection().expect("Unable to get a connection");
+
+    let value_as_json = serde_json::to_string(&value)
+        .with_context(|err| "Unable to serialize value")
+        .ok()?;
+    let result = {
+        let mut cmd = redis::cmd("JSON.ARRAPPEND");
+        cmd.arg(key).arg(path).arg(&value_as_json);
+        cmd
+    };
+    let result: RedisResult<String> = result.query(&mut con);
+
+    match result {
+        Err(err) => {
+            log::error!("Couldn't write to redis, reason: {:?}", err.detail());
+            None
+        }
+        Ok(res) => {
+            let msg = format!(
+                "Wrote {} with key {} and result {:?}",
+                value_as_json, key, res
+            );
+            log::debug!("{}", msg);
+            Some(msg)
+        }
+    }
+}
 
 pub fn count(table: &str) -> i32 {
     let client: Client = get_redis_client().unwrap();
@@ -244,7 +276,7 @@ pub fn bulk_set(csv: &mut Reader<File>, key: &str) -> Option<()> {
         }
     });
 
-    let result: RedisResult<i32> = pipeline.query(&mut con);
+    let result: RedisResult<_> = pipeline.query(&mut con);
 
     match result {
         Ok(res) => {
@@ -256,7 +288,7 @@ pub fn bulk_set(csv: &mut Reader<File>, key: &str) -> Option<()> {
             Some(())
         }
         Err(err) => {
-            log::error!("Failed to write to postcodes, error: {}", err);
+            log::error!("Failed to write postcodes to geo positions, error: {}", err);
             None
         }
     }

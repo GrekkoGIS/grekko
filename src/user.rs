@@ -87,7 +87,12 @@ pub async fn get_user_details(uid: String) -> Result<User, Error> {
 }
 
 pub async fn set_user(user: User) -> Option<String> {
+    redis_manager::set_json(&user.uid, None, user.clone());
     redis_manager::set::<User>("USERS", &user.uid, user.clone())
+}
+
+pub async fn append_user_route(user: User, route: &Solution) -> Option<String> {
+    redis_manager::append_json(&user.uid, "routes", &route)
 }
 
 pub async fn get_id_from_token(token: String) -> Result<String, Error> {
