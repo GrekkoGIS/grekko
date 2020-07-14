@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use csv::{Reader};
+use csv::Reader;
 use failure::{Error, ResultExt};
 use redis::geo::Coord;
 use redis::{Client, Cmd, Commands, Connection, RedisError, RedisResult, Value};
@@ -11,9 +11,8 @@ use serde::Serialize;
 use crate::geocoding::{COORDINATES_SEPARATOR, POSTCODE_TABLE_NAME};
 use crate::redis_manager::cache_manager::CacheManager;
 use crate::redis_manager::json_cache_manager::JsonCacheManager;
-use rayon::iter::{ParallelIterator};
+use rayon::iter::ParallelIterator;
 use std::sync::Arc;
-
 
 mod builder;
 pub(crate) mod cache_manager;

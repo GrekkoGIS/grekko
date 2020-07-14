@@ -2,7 +2,7 @@ use std::fs::File;
 
 use csv::{ByteRecord, Reader};
 
-use failure::{Error};
+use failure::Error;
 use serde::Deserialize;
 use vrp_pragmatic::format::Location;
 

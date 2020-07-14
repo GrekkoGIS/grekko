@@ -1,14 +1,4 @@
-use csv::{StringRecord};
-
-
-
-
-
-
-
-
-
-
+use csv::StringRecord;
 
 fn build_row_value(lat_index: usize, lon_index: usize, row: &StringRecord) -> String {
     format!(

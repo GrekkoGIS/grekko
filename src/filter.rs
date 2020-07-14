@@ -3,7 +3,7 @@ use std::convert::Infallible;
 use std::sync::Arc;
 
 use failure::Error;
-use serde::{Serialize};
+use serde::Serialize;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::Location;
@@ -15,9 +15,6 @@ use crate::geocoding::{forward_search, get_location_from_postcode};
 use crate::request::{build_locations, convert_to_internal_problem, SimpleTrip};
 use crate::user::{append_user_route, get_user, set_user, structs::User};
 use crate::{osrm_service, request, solver};
-
-
-
 
 pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;

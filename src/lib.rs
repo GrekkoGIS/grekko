@@ -5,15 +5,9 @@ extern crate cached;
 
 use std::net::SocketAddr;
 
-
-
 use warp::http::Method;
 
 use warp::{reject, Filter, Rejection};
-
-
-
-
 
 pub mod auth;
 pub mod filter;

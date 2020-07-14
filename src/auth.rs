@@ -1,5 +1,3 @@
-
-
 use jsonwebtoken::TokenData;
 
 use serde::Deserialize;
