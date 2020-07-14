@@ -237,27 +237,6 @@ pub fn bulk_set_csv(csv: &mut Reader<File>) -> Option<()> {
     let mut count = 0;
     let mut pipeline = redis::pipe();
 
-    // let s = records
-    //     .par_bridge()
-    //     .fold(
-    //         || redis::pipe(),
-    //         |mut pipeline, row| {
-    //             let row = &row.unwrap();
-    //             count += 1;
-    //             let (lon, lat) = build_row_tuple(lat_index, lon_index, row);
-    //             if lat != "99.999999" && lon != "0.000000" {
-    //                 pipeline
-    //                     .geo_add(
-    //                         build_row_field(postcode_index, row),
-    //                         (Coord::lon_lat(lon, lat), "UK"),
-    //                     )
-    //                     .ignore();
-    //             }
-    //             pipeline
-    //         },
-    //     )
-    //     .collect();
-    // TODO [#32]: use  rayon to parallelise this
     records.for_each(|row| {
         let row = &row.unwrap();
         count += 1;
