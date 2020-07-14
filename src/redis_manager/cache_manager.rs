@@ -1,7 +1,6 @@
 use csv::{Reader, StringRecord};
 use failure::{Error, ResultExt};
-use redis::geo::Coord;
-use redis::{Client, Cmd, Commands, Connection, RedisError, RedisResult, Value};
+use redis::{Client, Commands, Connection, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
