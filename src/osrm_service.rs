@@ -22,22 +22,6 @@ pub fn map_to_single_dimensional_array(matrix: Vec<Vec<f32>>) -> Vec<i64> {
     array
 }
 
-///
-///  DEBUG grekko::geocoding      > Location is invalid for: "GY1 3GX"
-//  DEBUG grekko::geocoding      > Location is invalid for: "JE3 8FX"
-//  DEBUG grekko::geocoding      > Location is invalid for: "GY8 0RF"
-//  DEBUG grekko::geocoding      > Location is invalid for: "GY7 9HU"
-//  DEBUG grekko::geocoding      > Location is invalid for: "GY1 2RS"
-//  DEBUG grekko::geocoding      > Location is invalid for: "BT74 0AP"
-//  DEBUG grekko::filter         > Errors from iterating vehicles: []
-//  DEBUG grekko::geocoding      > Location is invalid for: "GY1 3GX"
-//  DEBUG grekko::geocoding      > Location is invalid for: "BT74 0AP"
-//  DEBUG grekko::geocoding      > Location is invalid for: "GY8 0RF"
-//  DEBUG grekko::geocoding      > Location is invalid for: "JE3 8FX"
-//  DEBUG grekko::geocoding      > Location is invalid for: "GY7 9HU"
-//  DEBUG grekko::geocoding      > Location is invalid for: "GY1 2RS"
-//  DEBUG grekko::filter         > Errors from iterating jobs: []
-// TODO: Seems to iterate through both of them for the same coords
 pub fn trip(coords: Vec<Vec<f32>>) -> Result<(Vec<Vec<f32>>, Vec<Vec<f32>>), Error> {
     log::debug!("Building trip for coords: `{:?}", coords);
     let trip_durations = generic_trip(&coords, |osrm, index, destinations| {

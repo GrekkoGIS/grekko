@@ -1,3 +1,6 @@
+#![feature(impl_trait_in_bindings)]
+#![feature(const_fn)]
+
 #[macro_use]
 extern crate cached;
 

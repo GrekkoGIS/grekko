@@ -197,8 +197,8 @@ pub fn build_locations(coordinates: &Vec<String>) -> Vec<Location> {
         .map(|location| geocoding::get_location_from_postcode(location))
         .partition(Result::is_ok);
     let locations: Vec<Location> = locations.into_iter().map(Result::unwrap).collect();
-    let errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
-    // TODO: log these better
+    // TODO: log these better and built unassigned jobs from them
+    let _errors: Vec<failure::Error> = errors.into_iter().map(Result::unwrap_err).collect();
     locations
 }
 

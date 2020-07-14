@@ -9,6 +9,9 @@ pub mod structs;
 
 use crate::auth;
 use crate::redis_manager;
+use crate::redis_manager::cache_manager::CacheManager;
+use crate::redis_manager::get_manager;
+use crate::redis_manager::json_cache_manager::JsonCacheManager;
 use crate::user::structs::User;
 
 pub async fn get_id_from_token(token: String) -> Result<String, Error> {
@@ -29,22 +32,23 @@ pub async fn get_user(token: String) -> Result<User, Error> {
 }
 
 pub async fn get_user_details(uid: String) -> Result<User, Error> {
-    let user = redis_manager::get_json(uid.as_str(), None).with_context(|err| {
-        format!(
-            "Failed to get user `{}` from table USERS err `{}`",
-            uid, err
-        )
-    })?;
+    let user = get_manager()
+        .get_json(uid.as_str(), None)
+        .with_context(|err| {
+            format!(
+                "Failed to get user `{}` from table USERS err `{}`",
+                uid, err
+            )
+        })?;
     Ok(user)
 }
 
 pub async fn set_user(user: User) -> Option<String> {
-    redis_manager::set_json(&user.uid, None, user.clone());
-    redis_manager::set::<User>("USERS", &user.uid, user.clone())
+    get_manager().set_json(&user.uid, None, user.clone())
 }
 
 pub async fn append_user_route(user: User, route: &Solution) -> Option<String> {
-    redis_manager::append_json(&user.uid, ".routes", &route)
+    get_manager().append_json(&user.uid, ".routes", &route)
 }
 
 #[cfg(test)]

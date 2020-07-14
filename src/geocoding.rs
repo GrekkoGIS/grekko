@@ -7,6 +7,8 @@ use serde::Deserialize;
 use vrp_pragmatic::format::Location;
 
 use crate::redis_manager;
+use crate::redis_manager::cache_manager::CacheManager;
+use crate::redis_manager::get_manager;
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -28,13 +30,14 @@ cached! {
         match table.as_str() {
             POSTCODE_TABLE_NAME => {
                 // I don't want to read these again to UTF so using a known const
-                let postcode_csv_size = 2628568;
-                let mut reader = crate::geocoding::read_geocoding_csv();
-                let count = redis_manager::count(POSTCODE_TABLE_NAME);
 
-                if count < postcode_csv_size {
+                // TODO: swap this with a boolean
+                let bootstrapped: Result<String, Error> = get_manager().hget(&get_manager().client, "BOOTSTRAP", "BOOTSTRAPPED");
+
+                if bootstrapped.is_err() {
                     log::info!("Bootstrapping postcode cache");
-                    // redis_manager::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
+                    // let reader = crate::geocoding::read_geocoding_csv();
+                    // REDIS_MANAGER::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
                     true
                 } else {
                     log::info!("Postcode cache was already bootstrapped");
@@ -131,7 +134,7 @@ pub fn forward_search(lat_long: Vec<f64>) -> String {
 }
 pub fn forward_search_cache_table(lat_long: Vec<f64>) -> String {
     match redis_manager::get_postcode(lat_long) {
-        Err(err) => String::from("Postcode couldn't be found"),
+        Err(err) => format!("Postcode couldn't be found, err `{}`", err),
         Ok(value) => value,
     }
 }
