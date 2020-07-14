@@ -46,7 +46,6 @@ pub fn get_geo_pos(key: &str) -> Result<(f64, f64), Error> {
         key
     );
 
-    // let (lng, lat) = result?[0];
     match result {
         Err(err) => Err(err.into()),
         Ok(coord_list) => {
@@ -54,9 +53,17 @@ pub fn get_geo_pos(key: &str) -> Result<(f64, f64), Error> {
                 "Could not get coordinates from {:?}",
                 coord_list
             )))?;
-            let lng = coords[0];
-            let lat = coords[1];
-            Ok((lng, lat))
+            if coords.is_empty() {
+                Err(failure::err_msg(format!(
+                    "Returned empty coordinates for {}",
+                    key
+                )))
+            } else {
+                log::debug!("Coords: {:?}", coords);
+                let lng = coords[0];
+                let lat = coords[1];
+                Ok((lng, lat))
+            }
         }
     }
 }
