@@ -196,6 +196,35 @@ pub fn set_json<T: Serialize + Display>(key: &str, path: Option<&str>, value: T)
         }
     }
 }
+pub fn get_json<T: DeserializeOwned>(key: &str, path: Option<&str>) -> Result<T, Error> {
+    let client: Client = get_redis_client().expect("Unable to get a redis client");
+    let mut con = client.get_connection().expect("Unable to get a connection");
+
+    let command = if let Some(path) = path {
+        let mut cmd = redis::cmd("JSON.GET");
+        cmd.arg(key).arg(path);
+        cmd
+    } else {
+        let mut cmd = redis::cmd("JSON.GET");
+        cmd.arg(key).arg(".");
+        cmd
+    };
+    let result: RedisResult<String> = command.query(&mut con);
+    log::trace!(
+        "Result received from query: `{:?}` and key `{}`",
+        result,
+        key
+    );
+
+    match result {
+        Err(err) => {
+            log::error!("Failed to get json for `{}` err `{}`", key, err.category());
+            Err(err.into())
+        }
+        Ok(res) => Ok(serde_json::from_str(&res)?),
+    }
+}
+
 pub fn append_json<T: Serialize>(key: &str, path: &str, value: T) -> Option<String> {
     let client: Client = get_redis_client().expect("Unable to get a redis client");
     let mut con = client.get_connection().expect("Unable to get a connection");
@@ -217,8 +246,8 @@ pub fn append_json<T: Serialize>(key: &str, path: &str, value: T) -> Option<Stri
         }
         Ok(res) => {
             let msg = format!(
-                "Wrote {} with key {} and result {:?}",
-                value_as_json, key, res
+                "Wrote {} with key {}, path {} and result {:?}",
+                value_as_json, key, path, res
             );
             log::debug!("{}", msg);
             Some(msg)

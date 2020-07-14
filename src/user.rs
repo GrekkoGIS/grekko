@@ -77,7 +77,7 @@ pub async fn get_user(token: String) -> Result<User, Error> {
 }
 
 pub async fn get_user_details(uid: String) -> Result<User, Error> {
-    let user = redis_manager::get::<User>("USERS", uid.as_str()).with_context(|err| {
+    let user = redis_manager::get_json(uid.as_str(), None).with_context(|err| {
         format!(
             "Failed to get user `{}` from table USERS err `{}`",
             uid, err
@@ -92,7 +92,7 @@ pub async fn set_user(user: User) -> Option<String> {
 }
 
 pub async fn append_user_route(user: User, route: &Solution) -> Option<String> {
-    redis_manager::append_json(&user.uid, "routes", &route)
+    redis_manager::append_json(&user.uid, ".routes", &route)
 }
 
 pub async fn get_id_from_token(token: String) -> Result<String, Error> {
