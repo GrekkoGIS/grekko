@@ -1,14 +1,10 @@
-#![feature(impl_trait_in_bindings)]
 #![feature(const_fn)]
 
 #[macro_use]
 extern crate cached;
 
-use std::convert::Infallible;
 use std::net::SocketAddr;
-use std::sync::Arc;
 
-use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
 
 use warp::http::Method;
