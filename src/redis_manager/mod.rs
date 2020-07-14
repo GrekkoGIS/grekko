@@ -60,7 +60,7 @@ impl JsonCacheManager for RedisCacheManager {
             let mut cmd = redis::cmd("JSON.SET");
             cmd.arg(key).arg(path).arg(
                 serde_json::to_string(&value)
-                    .with_context(|err| RedisCacheManager::build_serialise_err(err))
+                    .with_context(|err| build_serialise_err(err))
                     .ok()?,
             );
             cmd
@@ -68,7 +68,7 @@ impl JsonCacheManager for RedisCacheManager {
             let mut cmd = redis::cmd("JSON.SET");
             cmd.arg(key).arg(".").arg(
                 serde_json::to_string(&value)
-                    .with_context(|err| RedisCacheManager::build_serialise_err(err))
+                    .with_context(|err| build_serialise_err(err))
                     .ok()?,
             );
             cmd
@@ -124,7 +124,7 @@ impl JsonCacheManager for RedisCacheManager {
         let mut con = client.get_connection().expect("Unable to get a connection");
 
         let value_as_json = serde_json::to_string(&value)
-            .with_context(|err| RedisCacheManager::build_serialise_err(err))
+            .with_context(|err| build_serialise_err(err))
             .ok()?;
         let result = {
             let mut cmd = redis::cmd("JSON.ARRAPPEND");
@@ -148,6 +148,10 @@ impl JsonCacheManager for RedisCacheManager {
             }
         }
     }
+}
+
+fn build_serialise_err(err: &dyn std::error::Error) -> String {
+    format!("Unable to serialize value err `{}`", err)
 }
 
 pub fn get_geo_pos(key: &str) -> Result<(f64, f64), Error> {
@@ -393,8 +397,4 @@ mod tests {
     }
 }
 
-impl RedisCacheManager {
-    fn build_serialise_err(err: &dyn std::error::Error) -> String {
-        format!("Unable to serialize value err `{}`", err)
-    }
-}
+impl RedisCacheManager {}

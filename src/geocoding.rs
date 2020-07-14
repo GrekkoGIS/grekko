@@ -8,7 +8,7 @@ use vrp_pragmatic::format::Location;
 
 use crate::redis_manager;
 use crate::redis_manager::cache_manager::CacheManager;
-use crate::redis_manager::get_manager;
+use crate::redis_manager::{bulk_set_csv, get_manager};
 
 #[derive(Deserialize)]
 pub struct Geocoding {
@@ -36,8 +36,10 @@ cached! {
 
                 if bootstrapped.is_err() {
                     log::info!("Bootstrapping postcode cache");
-                    // let reader = crate::geocoding::read_geocoding_csv();
-                    // REDIS_MANAGER::bulk_set(&mut reader, POSTCODE_TABLE_NAME);
+                    let mut reader = crate::geocoding::read_geocoding_csv();
+                    bulk_set_csv(&mut reader);
+                    tokio::task::spawn_blocking(|| get_manager().hset(&get_manager().client, "BOOTSTRAP", "BOOTSTRAPPED", "true"));
+                    get_manager().hset(&get_manager().client, "BOOTSTRAP", "BOOTSTRAPPED", "true");
                     true
                 } else {
                     log::info!("Postcode cache was already bootstrapped");
