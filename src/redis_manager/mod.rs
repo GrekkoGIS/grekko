@@ -1,9 +1,9 @@
 use std::fs::File;
 
-use csv::Reader;
+use csv::{Reader, StringRecord};
 use failure::{Error, ResultExt};
 use redis::geo::Coord;
-use redis::{Client, Commands, RedisResult};
+use redis::{Client, Commands, Pipeline, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
@@ -241,14 +241,7 @@ pub fn bulk_set_csv(csv: &mut Reader<File>) -> Option<()> {
         let row = &row.unwrap();
         count += 1;
         let (lon, lat) = builder::build_row_tuple(lat_index, lon_index, row);
-        if lat != "99.999999" && lon != "0.000000" {
-            pipeline
-                .geo_add(
-                    builder::build_row_field(postcode_index, row),
-                    (Coord::lon_lat(lon, lat), "UK"),
-                )
-                .ignore();
-        }
+        add_geo_to_pipeline(postcode_index, &mut pipeline, row, lon, lat)
     });
 
     let result: RedisResult<Vec<i32>> = pipeline.query(&mut con);
@@ -266,6 +259,23 @@ pub fn bulk_set_csv(csv: &mut Reader<File>) -> Option<()> {
             log::error!("Failed to write postcodes to geo positions, error: {}", err);
             None
         }
+    }
+}
+
+fn add_geo_to_pipeline(
+    postcode_index: usize,
+    pipeline: &mut Pipeline,
+    row: &StringRecord,
+    lon: &str,
+    lat: &str,
+) {
+    if lat != "99.999999" && lon != "0.000000" {
+        pipeline
+            .geo_add(
+                builder::build_row_field(postcode_index, row),
+                (Coord::lon_lat(lon, lat), "UK"),
+            )
+            .ignore();
     }
 }
 
