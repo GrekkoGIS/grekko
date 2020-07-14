@@ -32,7 +32,7 @@ cached! {
                 // I don't want to read these again to UTF so using a known const
 
                 // TODO: swap this with a boolean
-                let bootstrapped: Result<(), Error> = get_manager().hget(&get_manager().client, "BOOTSTRAP", "BOOTSTRAPPED");
+                let bootstrapped: Result<String, Error> = get_manager().hget(&get_manager().client, "BOOTSTRAP", "BOOTSTRAPPED");
 
                 if bootstrapped.is_err() {
                     log::info!("Bootstrapping postcode cache");
@@ -89,7 +89,7 @@ fn check_coordinate_string(query: &str, coordinates: String) -> Result<String, E
     if coordinates == String::from("99.999999;0.000000") {
         let msg = format!("Location is invalid for: {:?}", query);
         log::error!("{}", msg);
-        return Err(failure::err_msg(msg));
+        Err(failure::err_msg(msg))
     } else {
         Ok(coordinates)
     }
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_search_coordinates() {
-        let coordinates = reverse_search_file(&String::from("AB1-0AJ"));
+        let coordinates = reverse_search_file(&String::from("AB1-0AJ")).unwrap();
         assert_eq!(coordinates, "57.099011;-2.252854")
     }
 

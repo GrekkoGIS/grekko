@@ -3,7 +3,7 @@ use std::fs::File;
 use csv::Reader;
 use failure::{Error, ResultExt};
 use redis::geo::Coord;
-use redis::{Client, Cmd, Commands, Connection, RedisError, RedisResult, Value};
+use redis::{Client, Commands, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::Serialize;
@@ -307,7 +307,7 @@ mod tests {
             .write_record(&["TEST1", "0.0", "0.0"])
             .expect("Unable to write test record");
         let mut reader = csv::Reader::from_path(&file_name).expect("Issue reading test.csv");
-        let set_count = bulk_set_csv(POSTCODE_TABLE_NAME);
+        let set_count = bulk_set_csv(&mut reader);
         fs::remove_file(&file_name).unwrap();
         assert_eq!(set_count, Some(()));
     }

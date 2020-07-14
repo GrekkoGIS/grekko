@@ -7,7 +7,7 @@ use std::net::SocketAddr;
 
 use warp::http::Method;
 
-use warp::{reject, Filter, Rejection};
+use warp::Filter;
 
 pub mod auth;
 pub mod filter;

@@ -2,7 +2,6 @@
 #![feature(in_band_lifetimes)]
 #![feature(iter_partition_in_place)]
 #![feature(impl_trait_in_bindings)]
-#![feature(const_fn)]
 
 #[macro_use]
 extern crate cached;
