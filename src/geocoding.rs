@@ -78,8 +78,10 @@ fn map_to_location(lng: f64, lat: f64) -> Location {
 
 pub fn reverse_search(query: &str) -> Result<String, Error> {
     let coordinate_string = if is_bootstrapped() {
+        log::debug!("Getting query from cache");
         reverse_search_cache_table(&query)
     } else {
+        log::debug!("Getting query from file");
         reverse_search_file(&query)
     }?;
     Ok(check_coordinate_string(&query, coordinate_string)?)
