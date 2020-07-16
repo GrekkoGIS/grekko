@@ -6,7 +6,8 @@ pub mod structs;
 use crate::auth;
 use crate::redis_manager::get_manager;
 use crate::redis_manager::json_cache_manager::JsonCacheManager;
-use crate::user::structs::User;
+use crate::user::structs::{Geocoding, User};
+use vrp_core::models::common::Location;
 
 pub async fn get_id_from_token(token: String) -> Result<String, Error> {
     let valid_jwt = auth::decode_token_unsafe(token.clone())
@@ -43,6 +44,9 @@ pub async fn set_user(user: User) -> Option<String> {
 
 pub async fn append_user_route(user: User, route: &Solution) -> Option<String> {
     get_manager().append_json(&user.uid, ".routes", &route)
+}
+pub async fn append_user_geocoding(user: User, geocoding: &Geocoding) -> Option<String> {
+    get_manager().append_json(&user.uid, ".geocoding", &geocoding)
 }
 
 #[cfg(test)]

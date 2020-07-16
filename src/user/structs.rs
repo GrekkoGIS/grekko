@@ -5,13 +5,27 @@ use warp::reply::{Json, Response};
 use warp::{reject, Rejection};
 
 use crate::user::get_user_details;
+use vrp_pragmatic::format::Location;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct User {
     pub(crate) uid: String,
-    forward_geocoding: Vec<String>,
-    reverse_geocoding: Vec<Vec<f64>>,
+    geocoding: Vec<Geocoding>,
     routes: Vec<Solution>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Geocoding {
+    location: Location,
+    postcode: String,
+}
+impl Geocoding {
+    pub fn new(postcode: &str, location: &Location) -> Geocoding {
+        Geocoding {
+            location: location.clone(),
+            postcode: String::from(postcode),
+        }
+    }
 }
 
 impl warp::reply::Reply for User {
@@ -28,8 +42,8 @@ impl fmt::Display for User {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "ForwardGeocoding: {:?}, ReverseGeocoding: {:?}, Routes: {:?}",
-            self.forward_geocoding, self.reverse_geocoding, self.routes
+            "Geocoding: {:?}, Routes: {:?}",
+            self.geocoding, self.routes
         )
     }
 }

@@ -13,7 +13,8 @@ use warp::{reject, Rejection};
 
 use crate::geocoding::{forward_search, get_location_from_postcode};
 use crate::request::{build_locations, convert_to_internal_problem, SimpleTrip};
-use crate::user::{append_user_route, get_user, set_user, structs::User};
+use crate::user::structs::Geocoding;
+use crate::user::{append_user_geocoding, append_user_route, get_user, set_user, structs::User};
 use crate::{osrm_service, request, solver};
 
 pub async fn get_user_from_token(token: String) -> Result<impl warp::Reply, Rejection> {
@@ -40,11 +41,13 @@ pub async fn search_coordinates(
     token: String,
 ) -> Result<impl warp::Reply, Rejection> {
     let user = get_user(token).await;
-    extract_warp_err(user)?;
+    let user = extract_warp_err(user)?;
 
     let result = get_location_from_postcode(&postcode);
-    let result = extract_warp_err(result)?;
-    Ok(warp::reply::json(&result))
+    let location = extract_warp_err(result)?;
+    let geocoding = Geocoding::new(&postcode, &location);
+    append_user_geocoding(user, &geocoding).await;
+    Ok(warp::reply::json(&geocoding))
 }
 
 pub async fn search_postcode(
@@ -95,7 +98,6 @@ pub async fn simple_trip(
 
     let solution = &context.solution;
     let user = user.add_route(solution.clone());
-    // let route_set_result = set_user(user).await;
     let route_set_result = append_user_route(user, &solution).await;
 
     match_option_to_warp(route_set_result, Some(&solution))
@@ -139,7 +141,7 @@ pub async fn simple_trip_matrix(
     let context = extract_warp_err(context)?;
 
     let user = user.add_route(context.solution.clone());
-    let route_set_result = set_user(user).await;
+    let route_set_result = append_user_route(user, &context.solution).await;
 
     match_option_to_warp(route_set_result, Some(&context.solution))
 }
@@ -213,7 +215,7 @@ pub async fn simple_trip_async(
             let context = calculate_trip(&trip).await;
             if let Ok(context) = context {
                 let user = user.add_route(context.solution.clone());
-                let route_set_result = set_user(user).await;
+                let route_set_result = append_user_route(user, &context.solution).await;
                 if let Some(result) = route_set_result {
                     log::debug!("Stored user with result {}", result)
                 }
