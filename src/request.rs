@@ -1,4 +1,4 @@
-use chrono::Duration;
+use chrono::{DateTime, Duration, NaiveDateTime, Timelike, Utc};
 use failure::Error;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -11,6 +11,7 @@ use vrp_pragmatic::format::problem::{
 use vrp_pragmatic::format::{problem, Location};
 
 use crate::geocoding;
+use warp::filters::path::end;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -208,6 +209,12 @@ pub fn build_vehicles(locations: &Vec<Location>) -> Vec<VehicleType> {
         .into_par_iter()
         .enumerate()
         .map(|(i, vehicle)| {
+            let start = Utc::now()
+                .with_hour(8)
+                .expect("Unable to create start time");
+            let end = start
+                .checked_add_signed(Duration::hours(8))
+                .expect("Unable to add 8 hours to end time");
             VehicleType {
                 type_id: i.to_string(),
                 // TODO [#35]: type_id: "car".to_string(), for some reason this needs to be unique?
@@ -220,10 +227,14 @@ pub fn build_vehicles(locations: &Vec<Location>) -> Vec<VehicleType> {
                 },
                 shifts: vec![VehicleShift {
                     start: VehiclePlace {
-                        time: chrono::Utc::now().to_rfc3339(),
-                        location: vehicle,
+                        time: start.to_rfc3339(),
+                        // time: Utc::today().checked_add_signed(Duration::hours(8)).expect("Unable to add date").timezone().to,
+                        location: vehicle.clone(),
                     },
-                    end: None,
+                    end: Some(VehiclePlace {
+                        time: end.to_rfc3339(),
+                        location: vehicle,
+                    }),
                     breaks: None,
                     reloads: None,
                 }],
@@ -242,6 +253,8 @@ pub fn build_jobs(locations: &Vec<Location>) -> Vec<ProblemJob> {
         .into_par_iter()
         .enumerate()
         .map(|(index, location)| {
+            let start = Utc::now().with_hour(8).unwrap();
+            let end = start.checked_add_signed(Duration::hours(12)).unwrap();
             ProblemJob {
                 id: index.to_string(),
                 // TODO [#21]: potentially switch on the type of job to decide whether its a pickup, delivery or service
@@ -253,7 +266,7 @@ pub fn build_jobs(locations: &Vec<Location>) -> Vec<ProblemJob> {
                         location: location.clone(), // TODO: fix this clone
                         // TODO [#24]: parameterise duration for the simple type as an optional query parameter
                         duration: Duration::minutes(JOB_LENGTH as i64).num_seconds() as f64,
-                        times: None,
+                        times: Some(vec![vec![start.to_rfc3339(), end.to_rfc3339()]]),
                     }],
                     demand: None,
                     tag: Some(String::from("Simple 120 minute task")),
